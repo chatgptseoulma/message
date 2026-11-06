@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>식단 설계소</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: 입력 시트(위) → 한 끼 예산 탭 → [영양정보 라벨(좌, 고정) | 끼니 카드(우)] */
+:root{
+  --bg:#F2F5EF; --surface:#FFFFFF; --surface-2:#E8EDE5; --ink:#16201A; --muted:#58665B; --line:#D3DBD0;
+  --accent:#2C6A44; --accent-soft:#DCEBDF; --accent-ink:#FFFFFF;
+  --carb:#B97F0C; --protein:#B0413A; --fat:#33768A;
+  --good:#2C6A44; --warn:#9A5200; --warn-soft:#F6E8D3;
+  --font-display:"Gowun Batang","Nanum Myeongjo","AppleMyungjo",serif;
+  --font-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --font-num:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101511; --surface:#182019; --surface-2:#212B23; --ink:#E6ECE5; --muted:#9BA99E; --line:#2E3A31;
+    --accent:#7DC497; --accent-soft:#1F3627; --accent-ink:#0D1810;
+    --carb:#E2B24C; --protein:#E57C70; --fat:#6EB4C6;
+    --good:#7DC497; --warn:#E8A75A; --warn-soft:#3A2B17;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101511; --surface:#182019; --surface-2:#212B23; --ink:#E6ECE5; --muted:#9BA99E; --line:#2E3A31;
+  --accent:#7DC497; --accent-soft:#1F3627; --accent-ink:#0D1810;
+  --carb:#E2B24C; --protein:#E57C70; --fat:#6EB4C6;
+  --good:#7DC497; --warn:#E8A75A; --warn-soft:#3A2B17;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 72px;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{text-wrap:balance;margin:0}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Header */
+.top{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px 24px}
+.top h1{font-family:var(--font-display);font-weight:700;font-size:clamp(30px,4.4vw,44px);line-height:1.15;letter-spacing:-.01em}
+.top p{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.12em;color:var(--accent);text-transform:uppercase}
+
+/* Input sheet */
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:22px 28px}
+.field{display:flex;flex-direction:column;gap:10px;min-width:0;border:0;margin:0;padding:0}
+.field legend,.flabel{font-size:13px;font-weight:600;color:var(--ink);padding:0;display:flex;gap:8px;align-items:baseline}
+.field legend small,.flabel small{font-weight:400;color:var(--muted)}
+.f-basic{grid-column:span 12}
+.f-job{grid-column:span 12}
+.f-str,.f-cardio{grid-column:span 6}
+.f-goal{grid-column:span 9}
+.f-meals{grid-column:span 3}
+@media (max-width:900px){.f-str,.f-cardio,.f-goal,.f-meals{grid-column:span 12}}
+.step{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-family:var(--font-num);font-size:11px;font-weight:600;flex:none;transform:translateY(-1px)}
+.basic-row{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:end}
+.numfield{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.numfield .box{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:0 10px;height:42px}
+.numfield input{width:64px;border:0;background:transparent;font-family:var(--font-num);font-size:16px;font-weight:600;outline:none;padding:0}
+.numfield .box:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.numfield .unit{color:var(--muted);font-size:13px}
+
+/* Choice chips (radio) */
+.seg{display:inline-flex;flex-wrap:wrap;gap:6px}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.chip span{display:flex;align-items:center;gap:6px;height:42px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-weight:500;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s}
+.chip input:checked + span{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:8px}
+.card-opt{position:relative}
+.card-opt input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.card-opt span{display:flex;flex-direction:column;gap:2px;height:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);cursor:pointer;transition:background .15s,border-color .15s}
+.card-opt b{font-weight:600}
+.card-opt small{color:var(--muted);font-size:12.5px;line-height:1.45}
+.card-opt input:checked + span{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.card-opt input:checked + span b{color:var(--accent)}
+.card-opt input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+
+.ex{display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:12px;background:var(--bg);border:1px solid var(--line)}
+.ex .seg .chip span{background:var(--surface);height:38px;padding:0 12px;font-size:14px}
+.ex .seg .chip input:checked + span{background:var(--ink)}
+.ex-row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.ex-row[aria-disabled="true"]{opacity:.45;pointer-events:none}
+.slider{display:flex;align-items:center;gap:10px;flex:1 1 220px;min-width:0}
+.slider input{flex:1;min-width:0;accent-color:var(--accent)}
+.slider output{font-family:var(--font-num);font-weight:600;min-width:52px;text-align:right}
+.sel{height:38px;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:0 10px}
+.ex-hint{font-size:12.5px;color:var(--muted);margin:0}
+
+/* Budget tabs */
+.budget{display:flex;flex-direction:column;gap:10px}
+.budget-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.budget-head h2{font-family:var(--font-display);font-size:22px}
+.budget-head p{margin:0;color:var(--muted);font-size:13px}
+.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:4px}
+@media (max-width:640px){.tabs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tab{appearance:none;border:0;background:transparent;border-radius:9px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:0;text-align:left}
+.tab b{font-family:var(--font-num);font-size:15px;font-weight:600}
+.tab small{color:var(--muted);font-size:12px}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.tab[aria-selected="true"] small{color:var(--bg);opacity:.75}
+.tab:hover:not([aria-selected="true"]){background:var(--surface-2)}
+
+/* Results */
+.results{display:grid;grid-template-columns:minmax(0,350px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:920px){.results{grid-template-columns:minmax(0,1fr)}}
+.side{display:flex;flex-direction:column;gap:16px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px)}
+@media (max-width:920px){.side{position:static}}
+
+/* Nutrition-facts label (Korean 영양정보 style) */
+.facts{background:var(--surface);border:2px solid var(--ink);border-radius:4px;padding:14px 16px 12px}
+.facts-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:8px solid var(--ink);padding-bottom:8px}
+.facts-top h2{font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1}
+.facts-top .serv{font-size:12px;color:var(--muted);text-align:right;line-height:1.35}
+.facts-kcal{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0 6px;border-bottom:3px solid var(--ink)}
+.facts-kcal span{font-weight:700}
+.facts-kcal b{font-family:var(--font-num);font-size:30px;font-weight:600;line-height:1}
+.facts-kcal b small{font-size:14px;margin-left:2px}
+.facts-sub{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;padding:6px 0 4px;border-bottom:1px solid var(--ink)}
+.frow{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--ink)}
+.frow .nm{font-weight:700;display:flex;align-items:center;gap:6px}
+.frow .nm i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.frow .g{font-family:var(--font-num);font-weight:600;text-align:right}
+.frow .g small{color:var(--muted);font-weight:500}
+.frow .pct{font-family:var(--font-num);font-weight:600;text-align:right;min-width:44px}
+.frow .bar{grid-column:1 / -1;height:6px;background:var(--surface-2);border-radius:3px;position:relative;overflow:hidden}
+.frow .bar span{position:absolute;inset:0 auto 0 0;border-radius:3px}
+.frow .bar em{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink)}
+.facts-foot{font-size:11.5px;color:var(--muted);padding-top:8px;line-height:1.5}
+.ratio{display:flex;flex-direction:column;gap:6px;padding:10px 0 4px;border-bottom:1px solid var(--ink)}
+.ratio-row{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:center;font-size:11.5px;color:var(--muted)}
+.stack{display:flex;height:16px;border-radius:3px;overflow:hidden}
+.stack span{display:flex;align-items:center;justify-content:center;font-family:var(--font-num);font-size:10.5px;font-weight:600;color:#fff;min-width:0;overflow:hidden;white-space:nowrap}
+
+.calc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.calc h3{font-size:14px;margin-bottom:8px}
+.calc ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.calc li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.calc li:last-child{border-bottom:0;font-weight:700}
+.calc li span:first-child{color:var(--muted)}
+.calc li:last-child span:first-child{color:var(--ink)}
+.calc li .num{font-weight:600}
+.notes{display:flex;flex-direction:column;gap:8px;margin:12px 0 0;padding:0;list-style:none}
+.notes li{font-size:13px;line-height:1.5;padding-left:14px;position:relative;color:var(--muted)}
+.notes li::before{content:"";position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.alert{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5}
+
+/* Meal cards */
+.meals{display:flex;flex-direction:column;gap:18px;min-width:0}
+.meals-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.meals-head h2{font-family:var(--font-display);font-size:22px}
+.meals-head p{margin:0;color:var(--muted);font-size:13px}
+.meal{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.meal-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.meal-head .slot{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.meal-head .slot b{font-family:var(--font-display);font-size:19px}
+.meal-head .slot span{color:var(--muted);font-size:13px}
+.pill{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.pill.good{background:var(--accent-soft);color:var(--good)}
+.pill.near{background:var(--surface-2);color:var(--muted)}
+.pill.off{background:var(--warn-soft);color:var(--warn)}
+.meal-body{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:18px;padding:16px}
+@media (max-width:640px){.meal-body{grid-template-columns:minmax(0,1fr)}}
+.photo{margin:0;display:flex;flex-direction:column;gap:4px;min-width:0}
+.photo .img{aspect-ratio:4/3;width:100%;max-width:100%;border-radius:10px;overflow:hidden;background:var(--surface-2);position:relative}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.photo .ph{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-display);font-size:40px;color:var(--muted)}
+.photo figcaption{font-size:11px;color:var(--muted)}
+.info{display:flex;flex-direction:column;gap:10px;min-width:0}
+.info h3{font-size:19px;font-weight:700;line-height:1.35}
+.info .comp{margin:0;color:var(--muted);font-size:14px}
+.meta{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:12px;padding:2px 8px;border-radius:6px;background:var(--surface-2);color:var(--ink);white-space:nowrap}
+.tag.price{font-family:var(--font-num);font-weight:600}
+.tag.low{background:var(--warn-soft);color:var(--warn)}
+.adj{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:13.5px}
+.adj li{display:flex;align-items:center;gap:8px}
+.adj .sym{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+.adj .plus{background:var(--accent-soft);color:var(--accent)}
+.adj .minus{background:var(--warn-soft);color:var(--warn)}
+.adj .base{background:var(--surface-2);color:var(--muted)}
+.adj .th{width:26px;height:26px;border-radius:6px;object-fit:cover;flex:none}
+.adj small{color:var(--muted);font-family:var(--font-num)}
+.mac{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.mac div{padding:8px 10px;display:flex;flex-direction:column;gap:0;border-right:1px solid var(--line)}
+.mac div:last-child{border-right:0}
+.mac small{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.mac small i{width:8px;height:8px;border-radius:2px}
+.mac b{font-family:var(--font-num);font-weight:600;font-size:16px}
+.mac b em{font-style:normal;font-size:11px;color:var(--muted);margin-left:2px}
+.tip{margin:0;font-size:13px;color:var(--ink);background:var(--bg);border-radius:8px;padding:8px 10px}
+.tip b{color:var(--accent)}
+.alts{display:flex;align-items:center;gap:8px;padding:10px 16px 14px;flex-wrap:wrap;border-top:1px solid var(--line)}
+.alts > span{font-size:12px;color:var(--muted);margin-right:2px}
+.alt{appearance:none;display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:4px 10px 4px 4px;cursor:pointer;text-align:left;max-width:100%}
+.alt:hover{border-color:var(--accent)}
+.alt .th{width:34px;height:34px;border-radius:7px;object-fit:cover;background:var(--surface-2);flex:none;display:grid;place-items:center;font-family:var(--font-display);color:var(--muted);font-size:15px}
+.alt span{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.alt b{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alt small{font-size:11.5px;color:var(--muted);font-family:var(--font-num)}
+
+.day-sum{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;justify-content:space-between;background:var(--ink);color:var(--bg);border-radius:var(--radius);padding:14px 18px}
+.day-sum b{font-family:var(--font-num);font-size:18px}
+.day-sum span{font-size:13px;opacity:.85}
+
+.credits{font-size:12px;color:var(--muted)}
+.credits summary{cursor:pointer;font-weight:600}
+.credits ul{margin:8px 0 0;padding-left:18px;columns:2 280px;column-gap:28px}
+.credits li{break-inside:avoid;margin-bottom:4px}
+.credits a{color:var(--accent)}
+.disclaimer{font-size:12px;color:var(--muted);max-width:80ch;margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">맞춤 하루 식단</div>
+      <h1>식단 설계소</h1>
+      <p>몸 정보와 활동량, 목표를 넣으면 하루 칼로리와 탄·단·지를 계산하고, 한 끼 예산에 맞는 실제 메뉴로 하루를 짜 드립니다. 아래 값은 예시이니 본인 정보로 바꿔보세요.</p>
+    </div>
+  </header>
+
+  <form class="sheet" id="form" autocomplete="off">
+    <fieldset class="field f-basic">
+      <legend><span class="step">1</span>성별 <span class="step">2</span>키·몸무게 <small>나이는 기초대사량 계산에 씁니다</small></legend>
+      <div class="basic-row">
+        <div class="seg" role="radiogroup" aria-label="성별">
+          <label class="chip"><input type="radio" name="sex" id="sex-m" value="m" checked><span>남성</span></label>
+          <label class="chip"><input type="radio" name="sex" id="sex-f" value="f"><span>여성</span></label>
+        </div>
+        <label class="numfield">나이<span class="box"><input type="number" id="age" name="age" min="15" max="90" value="32" inputmode="numeric"><span class="unit">세</span></span></label>
+        <label class="numfield">키<span class="box"><input type="number" id="height" name="height" min="130" max="220" value="175" step="0.5" inputmode="decimal"><span class="unit">cm</span></span></label>
+        <label class="numfield">몸무게<span class="box"><input type="number" id="weight" name="weight" min="35" max="200" value="78" step="0.1" inputmode="decimal"><span class="unit">kg</span></span></label>
+        <div class="numfield">BMI<span class="box" style="background:transparent;border-style:dashed"><span class="num" id="bmi" style="font-weight:600;font-size:16px">25.5</span><span class="unit" id="bmi-tag" style="margin-left:6px"></span></span></div>
+      </div>
+    </fieldset>
+
+    <fieldset class="field f-job">
+      <legend><span class="step">3</span>직업·일상 활동량 <small>운동 시간은 빼고 생각하세요</small></legend>
+      <div class="cards">
+        <label class="card-opt"><input type="radio" name="job" id="job-sit" value="sit" checked><span><b>주로 앉아서</b><small>사무직·재택·학생 · 하루 5천 보 미만</small></span></label>
+        <label class="card-opt"><input type="radio" name="job" id="job-light" value="light"><span><b>가볍게 움직임</b><small>매장·교사·연구실 · 5천~1만 보</small></span></label>
+        <label class="card-opt"><input type="radio" name="job" id="job-active" value="active"><span><b>활동적</b><small>서빙·배달·간호·현장 관리 · 1만 보 이상</small></span></label>
+        <label class="card-opt"><input type="radio" name="job" id="job-heavy" value="heavy"><span><b>매우 활동적</b><small>건설·물류·농업 등 종일 육체노동</small></span></label>
+      </div>
+    </fieldset>
+
+    <fieldset class="field f-str">
+      <legend><span class="step">4</span>근력운동</legend>
+      <div class="ex">
+        <div class="seg" role="radiogroup" aria-label="근력운동 강도">
+          <label class="chip"><input type="radio" name="str" id="str-none" value="none"><span>안 함</span></label>
+          <label class="chip"><input type="radio" name="str" id="str-light" value="light"><span>가볍게</span></label>
+          <label class="chip"><input type="radio" name="str" id="str-mod" value="mod" checked><span>보통</span></label>
+          <label class="chip"><input type="radio" name="str" id="str-hard" value="hard"><span>숨차게</span></label>
+        </div>
+        <p class="ex-hint" id="str-hint"></p>
+        <div class="ex-row" id="str-row">
+          <label class="slider"><span class="flabel">1회</span><input type="range" id="str-min" name="strMin" min="10" max="120" step="5" value="60"><output id="str-min-out" for="str-min">60분</output></label>
+          <select class="sel" id="str-days" name="strDays" aria-label="근력운동 주당 횟수"></select>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="field f-cardio">
+      <legend><span class="step">4</span>유산소</legend>
+      <div class="ex">
+        <div class="seg" role="radiogroup" aria-label="유산소 종류">
+          <label class="chip"><input type="radio" name="cardio" id="cardio-none" value="none"><span>안 함</span></label>
+          <label class="chip"><input type="radio" name="cardio" id="cardio-walk" value="walk" checked><span>빠른 걷기</span></label>
+          <label class="chip"><input type="radio" name="cardio" id="cardio-bike" value="bike"><span>자전거·수영</span></label>
+          <label class="chip"><input type="radio" name="cardio" id="cardio-jog" value="jog"><span>조깅</span></label>
+          <label class="chip"><input type="radio" name="cardio" id="cardio-run" value="run"><span>달리기</span></label>
+          <label class="chip"><input type="radio" name="cardio" id="cardio-hiit" value="hiit"><span>인터벌</span></label>
+        </div>
+        <p class="ex-hint" id="cardio-hint"></p>
+        <div class="ex-row" id="cardio-row">
+          <label class="slider"><span class="flabel">1회</span><input type="range" id="cardio-min" name="cardioMin" min="10" max="120" step="5" value="30"><output id="cardio-min-out" for="cardio-min">30분</output></label>
+          <select class="sel" id="cardio-days" name="cardioDays" aria-label="유산소 주당 횟수"></select>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="field f-goal">
+      <legend><span class="step">5</span>목표</legend>
+      <div class="cards">
+        <label class="card-opt"><input type="radio" name="goal" id="goal-cut_lean" value="cut_lean" checked><span><b>근육 유지하며 감량</b><small>−20% · 단백질 높게, 근력운동 병행</small></span></label>
+        <label class="card-opt"><input type="radio" name="goal" id="goal-cut_health" value="cut_health"><span><b>건강을 위한 감량</b><small>−15% · 무리 없는 속도, 균형식</small></span></label>
+        <label class="card-opt"><input type="radio" name="goal" id="goal-maintain" value="maintain"><span><b>체중 유지</b><small>소모량만큼 · 컨디션 관리</small></span></label>
+        <label class="card-opt"><input type="radio" name="goal" id="goal-lean_bulk" value="lean_bulk"><span><b>린 벌크업</b><small>+10% · 지방 증가 최소화</small></span></label>
+        <label class="card-opt"><input type="radio" name="goal" id="goal-bulk" value="bulk"><span><b>벌크업</b><small>+18% · 체중·근육량 빠르게</small></span></label>
+      </div>
+    </fieldset>
+
+    <fieldset class="field f-meals">
+      <legend><span class="step">6</span>하루 끼니 수</legend>
+      <div class="seg" role="radiogroup" aria-label="하루 끼니 수">
+        <label class="chip"><input type="radio" name="meals" id="meals-2" value="2"><span>2끼</span></label>
+        <label class="chip"><input type="radio" name="meals" id="meals-3" value="3" checked><span>3끼</span></label>
+        <label class="chip"><input type="radio" name="meals" id="meals-4" value="4"><span>4끼</span></label>
+      </div>
+      <p class="ex-hint" id="meals-hint"></p>
+    </fieldset>
+  </form>
+
+  <section class="budget" aria-label="한 끼 예산">
+    <div class="budget-head">
+      <h2>한 끼에 얼마까지 쓸 수 있나요?</h2>
+      <p>탭을 바꾸면 같은 목표를 그 가격대 메뉴로 다시 짭니다.</p>
+    </div>
+    <div class="tabs" role="tablist" id="tabs">
+      <button type="button" class="tab" role="tab" id="tab-0" data-tier="0" aria-selected="false" tabindex="-1"><b>~5천원</b><small>직접 조리·편의점</small></button>
+      <button type="button" class="tab" role="tab" id="tab-1" data-tier="1" aria-selected="true" tabindex="0"><b>5천~1만원</b><small>백반·분식·도시락</small></button>
+      <button type="button" class="tab" role="tab" id="tab-2" data-tier="2" aria-selected="false" tabindex="-1"><b>1만~1만5천원</b><small>정식·국밥·포케</small></button>
+      <button type="button" class="tab" role="tab" id="tab-3" data-tier="3" aria-selected="false" tabindex="-1"><b>1만5천~2만5천원</b><small>스테이크·보양식</small></button>
+    </div>
+  </section>
+
+  <section class="results" role="tabpanel" id="panel" aria-labelledby="tab-1">
+    <aside class="side">
+      <div class="facts" id="facts"></div>
+      <div class="calc" id="calc"></div>
+    </aside>
+    <div class="meals" id="meals"></div>
+  </section>
+
+  <p class="disclaimer">계산식: Mifflin-St Jeor 기초대사량 × 일상 활동 계수 + 운동 소모량(MET 기준, 주간 평균). 메뉴의 칼로리·탄단지와 가격은 일반적인 1인분 기준 추정치로, 식당과 지역에 따라 달라집니다. 임신·수유 중이거나 당뇨·신장질환 등이 있다면 의료진과 상의 후 적용하세요.</p>
+  <details class="credits" id="credits"><summary>사진 출처 (Wikimedia Commons)</summary><ul id="credit-list"></ul></details>
+</div>
+
+<script>
+const PHOTOS = {};
+const CREDITS = [];
+
+/* ---------- 계산 상수 ---------- */
+const JOB = {sit:{f:1.2,l:'주로 앉아서'}, light:{f:1.35,l:'가볍게 움직임'}, active:{f:1.5,l:'활동적'}, heavy:{f:1.65,l:'매우 활동적'}};
+const STR = {
+  none:{met:0,h:'근력운동을 하지 않음'},
+  light:{met:3.5,h:'기구 위주, 대화가 가능한 정도 · MET 3.5'},
+  mod:{met:5.0,h:'세트 사이 1~2분 휴식, 마지막 반복이 힘든 정도 · MET 5.0'},
+  hard:{met:6.0,h:'서킷·크로스핏처럼 쉬는 시간 짧고 숨이 참 · MET 6.0'}
+};
+const CARDIO = {
+  none:{met:0,h:'유산소를 하지 않음'},
+  walk:{met:4.3,h:'시속 6km 안팎, 말은 되지만 노래는 힘든 정도 · MET 4.3'},
+  bike:{met:7.0,h:'실내자전거 보통 강도 또는 자유형 수영 · MET 7.0'},
+  jog:{met:8.3,h:'시속 8km 안팎 · MET 8.3'},
+  run:{met:10.0,h:'시속 10km 이상 · MET 10.0'},
+  hiit:{met:8.0,h:'전력 구간과 휴식 반복 (평균) · MET 8.0'}
+};
+const GOALS = {
+  cut_lean:{adj:-.20,p:2.2,fat:.25,l:'근육 유지 감량'},
+  cut_health:{adj:-.15,p:1.5,fat:.30,l:'건강 감량'},
+  maintain:{adj:0,p:1.6,fat:.28,l:'유지'},
+  lean_bulk:{adj:.10,p:2.0,fat:.25,l:'린 벌크업'},
+  bulk:{adj:.18,p:1.8,fat:.25,l:'벌크업'}
+};
+const GOAL_NOTES = {
+  cut_lean:['근력운동 볼륨은 그대로 유지하세요. 감량기에 근육을 지키는 가장 큰 신호입니다.','단백질은 끼니마다 고르게 나눠 먹을수록 좋습니다.','체중이 주당 0.5~1%씩 빠지면 적정 속도입니다. 더 빠르면 100~200kcal 올리세요.'],
+  cut_health:['국물·소스·음료의 칼로리부터 줄이면 메뉴를 바꾸지 않고도 감량이 됩니다.','밥 전에 채소 반찬을 먼저 먹으면 같은 칼로리에도 포만감이 큽니다.','2주 동안 체중 변화가 없으면 하루 100~150kcal를 더 줄이세요.'],
+  maintain:['주 3회 이상 같은 시간에 체중을 재서 ±1kg 안에 있으면 맞는 칼로리입니다.','바쁜 날에도 단백질 목표는 먼저 채우세요.'],
+  lean_bulk:['한 달에 0.5~1kg 증가가 목표입니다. 허리둘레가 빨리 늘면 100~200kcal 낮추세요.','운동 전후 끼니에 탄수화물을 더 배치하면 훈련 질이 좋아집니다.'],
+  bulk:['식욕이 부족하면 우유·바나나·견과처럼 먹기 쉬운 칼로리를 끼니에 더하세요.','한 달에 1~2kg 증가가 목표입니다. 체중이 안 늘면 하루 200kcal씩 올립니다.','근력운동 기록이 같이 올라가는지 확인하세요.']
+};
+const SLOTS = {
+  2:[{n:'첫 끼',t:'11~12시',s:.45,k:'m'},{n:'두 번째 끼',t:'18~19시',s:.55,k:'m'}],
+  3:[{n:'아침',t:'7~9시',s:.27,k:'b'},{n:'점심',t:'12~13시',s:.39,k:'m'},{n:'저녁',t:'18~19시',s:.34,k:'m'}],
+  4:[{n:'아침',t:'7~9시',s:.24,k:'b'},{n:'점심',t:'12~13시',s:.33,k:'m'},{n:'오후 간식',t:'15~16시',s:.13,k:'s'},{n:'저녁',t:'18~19시',s:.30,k:'m'}]
+};
+const MEAL_HINT = {2:'두 끼 사이 6~7시간 간격. 한 끼 양이 커지니 단백질을 두 번에 나눠 크게 챙기세요.',3:'가장 일반적인 배분입니다. 점심을 가장 크게 둡니다.',4:'아침·점심·간식·저녁. 간식은 가격대와 상관없이 간단한 단백질 위주로 짭니다.'};
+const TIER_LABEL = ['~5천원','5천~1만원','1만~1만5천원','1만5천~2만5천원'];
+
+/* ---------- 메뉴 데이터 (1인분 일반 기준 추정치) ----------
+   k=kcal, p/c/f=g, price=원, kinds: b=아침 가능, m=점심·저녁, base=줄일 수 있는 탄수 원천 */
+const DISHES = [
+  // 0: ~5천원
+  {id:'oatmeal',t:0,kinds:['b'],name:'오트밀 바나나 볼',desc:'오트밀 50g + 우유 200ml + 바나나 1개 + 견과 한 스푼',k:430,p:16,c:68,f:11,price:2000,where:'직접 조리',reduce:{id:'r_ban',l:'바나나 반 개만',k:-45,p:-.5,c:-12,f:0},tip:'전자레인지 2분이면 됩니다. 단백질이 부족하면 프로틴 한 스쿱을 섞으세요.'},
+  {id:'egg_toast',t:0,kinds:['b'],name:'계란 치즈 토스트 + 우유',desc:'식빵 2장 + 계란 2개 + 슬라이스 치즈 1장 + 우유 200ml',k:520,p:27,c:50,f:23,price:2500,where:'직접 조리',base:'bread',tip:'버터 대신 기름을 키친타월로 얇게 두르면 지방이 줄어듭니다.'},
+  {id:'greek_yogurt',t:0,kinds:['b'],name:'그릭요거트 그래놀라 볼',desc:'무가당 그릭요거트 150g + 그래놀라 30g + 냉동 블루베리',k:330,p:18,c:38,f:11,price:3500,where:'직접 조리·편의점',tip:'가당 요거트는 당이 15g 이상 더 들어갑니다. 무가당을 고르세요.'},
+  {id:'samgak',t:0,kinds:['b','m'],name:'삼각김밥 2개 + 단백질 음료',desc:'참치마요·불고기 삼각김밥 2개 + 단백질 음료 1병(단백질 20g)',k:520,p:31,c:78,f:11,price:4900,where:'편의점',reduce:{id:'r_sam',l:'삼각김밥 1개로',k:-190,p:-5,c:-38,f:-4},tip:'컵라면 대신 단백질 음료를 붙이는 것이 핵심입니다.'},
+  {id:'chicken_rice',t:0,kinds:['m'],name:'닭가슴살 현미밥 도시락',desc:'닭가슴살 1팩(100g) + 현미밥 1공기(210g) + 브로콜리·방울토마토',k:470,p:33,c:72,f:5,price:4500,where:'직접 조리',base:'rice',tip:'일요일에 3~4개 만들어 두면 평일 점심이 해결됩니다.'},
+  {id:'egg_fried_rice',t:0,kinds:['m'],name:'계란볶음밥',desc:'밥 1공기 + 계란 2개 + 대파 + 식용유 1스푼',k:560,p:18,c:75,f:20,price:1500,where:'직접 조리',base:'rice',tip:'계란을 3개로 늘리면 300원에 단백질 6g이 더 붙습니다.'},
+  {id:'kimchi_fried_rice',t:0,kinds:['m'],name:'참치 김치볶음밥 + 계란 프라이',desc:'밥 1공기 + 김치 + 참치 1/2캔 + 계란 프라이 1개',k:680,p:27,c:85,f:25,price:3000,where:'직접 조리',base:'rice',tip:'참치 기름을 따라내면 약 60kcal가 빠집니다.'},
+  {id:'tofu_meal',t:0,kinds:['m'],name:'두부부침 집밥',desc:'두부 반 모 부침 + 밥 1공기 + 김치·김',k:560,p:24,c:75,f:18,price:2500,where:'직접 조리',base:'rice',tip:'두부는 가장 싼 단백질입니다. 양념장은 간장·고춧가루·파로 충분합니다.'},
+  // 1: 5천~1만원
+  {id:'kimbap',t:1,kinds:['b','m'],name:'참치김밥 1줄',desc:'참치마요김밥 1줄(10알)',k:520,p:17,c:66,f:20,price:5000,where:'분식점',base:'rice',tip:'라면을 같이 먹으면 500kcal가 더해집니다. 계란이나 우유를 곁들이세요.'},
+  {id:'sandwich',t:1,kinds:['b','m'],name:'로스트 치킨 샌드위치',desc:'15cm 위트빵 + 로스트 치킨 + 채소 듬뿍 + 저칼로리 소스',k:420,p:28,c:48,f:12,price:7500,where:'샌드위치 전문점',base:'bread',tip:'마요네즈 계열 소스를 빼면 80~100kcal가 줄어듭니다.'},
+  {id:'chicken_salad',t:1,kinds:['b','m'],name:'닭가슴살 샐러드',desc:'구운 닭가슴살 120g + 잎채소 + 방울토마토 + 오리엔탈 드레싱',k:320,p:35,c:18,f:11,price:8000,where:'샐러드 전문점·편의점',reduce:{id:'r_dr',l:'드레싱 절반만',k:-50,p:0,c:-3,f:-4},tip:'탄수화물이 거의 없어서, 운동하는 날엔 고구마나 밥을 같이 드세요.'},
+  {id:'dosirak',t:1,kinds:['m'],name:'편의점 제육 도시락',desc:'밥 + 제육볶음 + 계란말이 + 나물 반찬',k:700,p:25,c:100,f:22,price:5500,where:'편의점',base:'rice',tip:'영양성분표의 나트륨이 1,500mg을 넘으면 국물류는 빼세요.'},
+  {id:'sundubu',t:1,kinds:['m'],name:'순두부찌개 백반',desc:'순두부찌개 + 공기밥 + 기본 반찬 3~4가지',k:650,p:28,c:85,f:21,price:9000,where:'백반집',base:'rice',tip:'계란을 하나 풀어 달라고 하면 단백질이 6g 늘어납니다.'},
+  {id:'doenjang',t:1,kinds:['m'],name:'된장찌개 백반',desc:'된장찌개 + 공기밥 + 기본 반찬',k:580,p:24,c:85,f:15,price:8500,where:'백반집',base:'rice',tip:'찌개 속 두부와 건더기를 먼저 먹고 국물은 남기세요.'},
+  {id:'kimchi_jjigae',t:1,kinds:['m'],name:'돼지고기 김치찌개 백반',desc:'돼지고기 김치찌개 + 공기밥 + 기본 반찬',k:700,p:30,c:82,f:27,price:9000,where:'백반집',base:'rice',tip:'비계가 많은 부위면 지방이 10g 이상 늘어납니다.'},
+  {id:'bibimbap',t:1,kinds:['m'],name:'비빔밥',desc:'밥 + 나물 5~6가지 + 계란 프라이 + 고추장',k:600,p:20,c:95,f:15,price:9000,where:'한식당',base:'rice',tip:'고추장은 반만 넣고 참기름은 한 바퀴만 두르세요.'},
+  {id:'jeyuk',t:1,kinds:['m'],name:'제육볶음 백반',desc:'제육볶음 + 공기밥 + 쌈채소 + 기본 반찬',k:800,p:35,c:90,f:32,price:9500,where:'백반집',base:'rice',tip:'쌈채소를 많이 싸 먹으면 밥 양을 줄여도 배가 부릅니다.'},
+  {id:'kalguksu',t:1,kinds:['m'],name:'칼국수',desc:'바지락 또는 닭 칼국수 1그릇 + 김치',k:600,p:22,c:100,f:11,price:9500,where:'국수집',base:'noodle',tip:'단백질이 부족한 메뉴입니다. 다른 끼니에서 단백질을 더 채우세요.'},
+  // 2: 1만~1만5천원
+  {id:'brunch',t:2,kinds:['b'],name:'에그 아보카도 토스트 플레이트',desc:'사워도우 2쪽 + 스크램블 에그(계란 3개) + 아보카도 반 개 + 샐러드',k:620,p:28,c:48,f:35,price:14000,where:'브런치 카페',base:'bread',tip:'지방 비율이 높은 편이라 점심은 담백한 메뉴로 맞추세요.'},
+  {id:'pho',t:2,kinds:['m'],name:'소고기 쌀국수',desc:'양지·차돌 쌀국수 1그릇 + 숙주·고수',k:550,p:30,c:80,f:11,price:11500,where:'쌀국수집',base:'noodle',tip:'차돌보다 양지를 고르면 지방이 줄어듭니다. 고기 추가가 가성비 좋은 단백질입니다.'},
+  {id:'gukbap',t:2,kinds:['m'],name:'돼지국밥',desc:'돼지국밥 1그릇 + 공기밥 + 부추·김치',k:750,p:40,c:80,f:28,price:11000,where:'국밥집',base:'rice',tip:'다대기와 새우젓을 줄이고 국물은 절반만 드세요.'},
+  {id:'bulgogi',t:2,kinds:['m'],name:'뚝배기 불고기 정식',desc:'뚝배기 불고기 + 공기밥 + 기본 반찬',k:720,p:35,c:88,f:24,price:11000,where:'한식당',base:'rice',tip:'당면을 덜어내면 탄수화물 15g 정도가 줄어듭니다.'},
+  {id:'mackerel',t:2,kinds:['m'],name:'고등어구이 정식',desc:'고등어 한 손 구이 + 공기밥 + 된장국 + 반찬',k:720,p:38,c:80,f:27,price:12000,where:'생선구이집',base:'rice',tip:'지방이 많아 보여도 대부분 오메가-3입니다. 감량 중이면 밥을 조절하세요.'},
+  {id:'donkatsu',t:2,kinds:['m'],name:'등심 돈까스 정식',desc:'등심 돈까스 + 밥 + 양배추 샐러드 + 미소국',k:950,p:38,c:100,f:44,price:12000,where:'돈까스 전문점',base:'rice',tip:'튀김이라 감량 중엔 가끔만. 양배추를 리필해서 먼저 드세요.'},
+  {id:'burrito_bowl',t:2,kinds:['m'],name:'치킨 부리또볼',desc:'라이스 + 그릴 치킨 + 콩 + 살사 + 양상추',k:650,p:40,c:72,f:20,price:12500,where:'멕시칸 패스트푸드',base:'rice',tip:'사워크림과 치즈를 빼면 약 150kcal가 줄어듭니다.'},
+  {id:'poke',t:2,kinds:['m'],name:'연어 포케',desc:'현미밥 베이스 + 생연어 + 아보카도 + 채소 + 간장 소스',k:620,p:32,c:70,f:22,price:13000,where:'포케 전문점',base:'rice',tip:'밥을 반으로 하고 채소를 추가하면 감량용 한 끼가 됩니다.'},
+  {id:'galbitang',t:2,kinds:['m'],name:'갈비탕',desc:'소갈비 3~4대 + 당면 + 공기밥',k:700,p:38,c:75,f:26,price:14000,where:'한식당',base:'rice',tip:'갈비 살은 다 드시고 국물 기름은 걷어내세요.'},
+  {id:'sushi',t:2,kinds:['m'],name:'모둠 초밥 12pc',desc:'광어·연어·참치·새우 등 초밥 12피스 + 미소국',k:600,p:30,c:95,f:9,price:14000,where:'초밥집',reduce:{id:'r_su',l:'초밥 2피스 줄이기',k:-100,p:-4,c:-18,f:-1},tip:'튀김·마요 초밥보다 생선 초밥 위주가 단백질 대비 칼로리가 낮습니다.'},
+  // 3: 1만5천~2만5천원
+  {id:'jeonbokjuk',t:3,kinds:['b'],name:'전복죽 + 반찬',desc:'전복죽 1그릇 + 장조림·김치',k:450,p:18,c:75,f:8,price:16000,where:'죽 전문점',reduce:{id:'r_juk',l:'죽 1/4 남기기',k:-110,p:-4,c:-19,f:-2},tip:'단백질이 적은 편이라 계란이나 장조림을 꼭 같이 드세요.'},
+  {id:'omelette',t:3,kinds:['b'],name:'오믈렛 브런치 플레이트',desc:'계란 3개 오믈렛 + 토스트 + 구운 감자 + 샐러드 + 과일',k:700,p:35,c:50,f:40,price:17000,where:'브런치 카페',base:'bread',tip:'감자를 샐러드로 바꿔 달라고 하면 약 120kcal가 줄어듭니다.'},
+  {id:'hoedeopbap',t:3,kinds:['m'],name:'회덮밥',desc:'밥 + 제철 생선회 + 채소 + 초고추장',k:620,p:30,c:95,f:12,price:16000,where:'횟집·일식당',base:'rice',tip:'초고추장 한 숟가락이 약 40kcal입니다. 절반만 넣으세요.'},
+  {id:'yukhoe',t:3,kinds:['m'],name:'육회비빔밥',desc:'밥 + 한우 육회 + 나물 + 배채',k:650,p:32,c:90,f:17,price:16000,where:'한식당',base:'rice',tip:'단백질·탄수 균형이 좋아 운동 후 식사로 잘 맞습니다.'},
+  {id:'shabu',t:3,kinds:['m'],name:'소고기 샤브샤브 1인',desc:'소고기 200g + 채소·버섯 + 마무리 칼국수 1/2',k:680,p:46,c:55,f:28,price:18000,where:'샤브샤브집',base:'noodle',tip:'채소를 리필해서 먹고, 소스는 폰즈(간장) 쪽이 칼로리가 낮습니다.'},
+  {id:'samgyetang',t:3,kinds:['m'],name:'삼계탕',desc:'영계 한 마리 + 찹쌀 + 인삼·대추',k:900,p:70,c:60,f:42,price:18000,where:'삼계탕집',reduce:{id:'r_sg',l:'닭 껍질 벗기기',k:-150,p:-4,c:0,f:-16},tip:'단백질 70g으로 한 끼에 하루치의 절반 가까이를 채웁니다.'},
+  {id:'salmon_steak',t:3,kinds:['m'],name:'연어 스테이크',desc:'연어 200g 스테이크 + 구운 채소 + 밥 2/3공기',k:720,p:45,c:55,f:34,price:22000,where:'양식당·다이닝',base:'rice',tip:'크림 소스 대신 레몬·허브 소스를 고르세요.'},
+  {id:'galbijjim',t:3,kinds:['m'],name:'소갈비찜 정식',desc:'소갈비찜 + 공기밥 + 반찬',k:950,p:48,c:85,f:45,price:24000,where:'한식당',base:'rice',tip:'벌크업 끼니로 좋습니다. 감량 중이면 밥을 반만 드세요.'},
+  {id:'beef_steak',t:3,kinds:['m'],name:'소고기 스테이크 정식',desc:'부채살·안심 200g + 매시드 포테이토 + 구운 채소',k:780,p:50,c:50,f:40,price:25000,where:'스테이크 하우스',reduce:{id:'r_pot',l:'감자 절반만',k:-90,p:-2,c:-17,f:-2},tip:'안심을 고르면 같은 양에 지방이 가장 적습니다.'},
+  {id:'unadon',t:3,kinds:['m'],name:'장어덮밥 (반 마리)',desc:'민물장어 반 마리 + 밥 + 장국',k:750,p:32,c:95,f:25,price:25000,where:'장어집',base:'rice',tip:'양념이 달아 당이 많습니다. 저녁보다 점심에 드세요.'}
+];
+const SNACKS = [
+  {id:'s_yogurt',photo:'greek_yogurt',kinds:['s'],name:'그릭요거트 + 바나나',desc:'무가당 그릭요거트 100g + 바나나 1개',k:220,p:16,c:30,f:4,price:2500,where:'편의점·직접',tip:'출출한 오후에 단맛을 채우면서 단백질도 챙깁니다.'},
+  {id:'s_shake',photo:'protein_shake',kinds:['s'],name:'프로틴 쉐이크 + 바나나',desc:'유청 단백질 1스쿱 + 물 300ml + 바나나 1개',k:210,p:25,c:27,f:2,price:2000,where:'직접',tip:'운동 1~2시간 전이나 직후에 마시면 좋습니다.'},
+  {id:'s_egg',photo:'sweet_potato',kinds:['s'],name:'삶은 달걀 2개 + 군고구마',desc:'삶은 달걀 2개 + 중간 크기 고구마 1개(150g)',k:270,p:14,c:32,f:10,price:2000,where:'편의점·직접',tip:'편의점 구운 달걀·고구마 코너로도 바로 됩니다.'},
+  {id:'s_nuts',photo:'almonds',kinds:['s'],name:'아몬드 한 줌 + 우유',desc:'아몬드 20g + 우유 200ml',k:250,p:10,c:14,f:17,price:1200,where:'편의점·직접',tip:'지방이 많아 감량 중엔 아몬드를 10알 정도로 줄이세요.'}
+];
+const ADDONS = [
+  {id:'egg2',photo:'boiled_egg',l:'삶은 달걀 2개',k:140,p:12,c:1,f:10,price:800},
+  {id:'chicken',photo:'chicken_rice',l:'닭가슴살 100g',k:110,p:23,c:1,f:1.5,price:2000},
+  {id:'shake',photo:'protein_shake',l:'프로틴 쉐이크 1스쿱',k:120,p:24,c:3,f:1.5,price:1500},
+  {id:'rice',l:'공기밥 반 공기 추가',k:150,p:3,c:33,f:.5,price:1000,max:2},
+  {id:'banana',photo:'banana',l:'바나나 1개',k:90,p:1,c:23,f:.3,price:500},
+  {id:'goguma',photo:'sweet_potato',l:'고구마 1개 (150g)',k:130,p:2,c:31,f:.2,price:1000},
+  {id:'almond',photo:'almonds',l:'아몬드 한 줌 (20g)',k:120,p:4,c:4,f:10,price:500},
+  {id:'milk',photo:'milk',l:'우유 200ml',k:130,p:6,c:10,f:7,price:600}
+];
+const REDUCE = {
+  rice:{id:'r_rice',l:'밥 1/3공기 덜기',k:-100,p:-2,c:-23,f:0,max:2},
+  noodle:{id:'r_noodle',l:'면 1/3 남기기',k:-120,p:-4,c:-24,f:-1,max:1},
+  bread:{id:'r_bread',l:'빵 1/3 덜기',k:-70,p:-2.5,c:-13,f:-1,max:1}
+};
+
+/* ---------- 상태 ---------- */
+const $ = s => document.querySelector(s);
+const fmt = n => Math.round(n).toLocaleString('ko-KR');
+const won = n => '₩' + (Math.round(n/100)*100).toLocaleString('ko-KR');
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+const STORE_KEY = 'diet-planner-v1';
+let tier = 1;
+const picks = {}; // `${tier}|${meals}|${slotIdx}` -> dishId
+
+function fillDays(sel, def){
+  sel.innerHTML = [1,2,3,4,5,6,7].map(d => `<option value="${d}"${d===def?' selected':''}>주 ${d}회</option>`).join('');
+}
+fillDays($('#str-days'), 3); fillDays($('#cardio-days'), 2);
+
+function readForm(){
+  const fd = new FormData($('#form'));
+  const num = (k, lo, hi, d) => { const v = parseFloat(fd.get(k)); return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
+  return {
+    sex: fd.get('sex') || 'm',
+    age: num('age', 15, 90, 32), height: num('height', 130, 220, 175), weight: num('weight', 35, 200, 78),
+    job: fd.get('job') || 'sit',
+    str: fd.get('str') || 'none', strMin: num('strMin', 10, 120, 60), strDays: num('strDays', 1, 7, 3),
+    cardio: fd.get('cardio') || 'none', cardioMin: num('cardioMin', 10, 120, 30), cardioDays: num('cardioDays', 1, 7, 2),
+    goal: fd.get('goal') || 'maintain', meals: +(fd.get('meals') || 3)
+  };
+}
+
+/* ---------- 목표 계산 ---------- */
+function targets(u){
+  const bmr = 10*u.weight + 6.25*u.height - 5*u.age + (u.sex === 'm' ? 5 : -161);
+  const neat = bmr * JOB[u.job].f;
+  const strK = STR[u.str].met ? (STR[u.str].met - 1) * u.weight * (u.strMin/60) * u.strDays / 7 : 0;
+  const carK = CARDIO[u.cardio].met ? (CARDIO[u.cardio].met - 1) * u.weight * (u.cardioMin/60) * u.cardioDays / 7 : 0;
+  const tdee = neat + strK + carK;
+  const g = GOALS[u.goal];
+  let kcal = tdee * (1 + g.adj);
+  const floor = Math.max(bmr, u.sex === 'm' ? 1500 : 1200);
+  let floored = false;
+  if (g.adj < 0 && kcal < floor){ kcal = floor; floored = true; }
+  kcal = Math.round(kcal/10)*10;
+  const h = u.height/100, bmi = u.weight/(h*h);
+  const refW = bmi > 25 ? 25*h*h : u.weight;
+  let p = refW * g.p;
+  const pCapped = p > kcal*0.35/4;
+  p = Math.min(p, kcal*0.35/4);
+  let f = Math.max(kcal*g.fat, 0.6*refW*9)/9;
+  let c = (kcal - p*4 - f*9)/4;
+  return {bmr, neat, strK, carK, tdee, kcal, pCapped, p:Math.round(p), c:Math.round(c), f:Math.round(f), floored, bmi, refW, weekly:(kcal - tdee)*7/7700, water:u.weight*0.033};
+}
+
+/* ---------- 끼니 맞추기 ---------- */
+function fit(dish, T, Pt, Ft){
+  let tot = {k:dish.k, p:dish.p, c:dish.c, f:dish.f, price:dish.price};
+  const opts = ADDONS.map(a => ({...a, max: a.max || 1}));
+  const red = dish.reduce || REDUCE[dish.base];
+  if (red) opts.push({...red, max: red.max || 1});
+  const err = t => (t.k > T ? 1.5 : 1)*Math.abs(T - t.k)/T + (t.p < Pt ? .8*(Pt - t.p)/Pt : .12*(t.p - Pt)/Pt) + .15*Math.abs(t.f - Ft)/Ft;
+  const counts = {}; const order = [];
+  let cur = err(tot);
+  for (let i = 0; i < 5; i++){
+    let best = null, bestE = cur - .02;
+    for (const o of opts){
+      if ((counts[o.id] || 0) >= o.max) continue;
+      const e = err({k:tot.k+o.k, p:tot.p+o.p, f:tot.f+o.f});
+      if (e < bestE){ bestE = e; best = o; }
+    }
+    if (!best) break;
+    tot = {k:tot.k+best.k, p:tot.p+best.p, c:tot.c+best.c, f:tot.f+best.f, price:tot.price+(best.price||0)};
+    if (!counts[best.id]) order.push(best);
+    counts[best.id] = (counts[best.id] || 0) + 1;
+    cur = bestE;
+  }
+  const steps = order.map(o => ({o, n:counts[o.id]}));
+  return {dish, tot, steps, err:cur};
+}
+function goalPenalty(goal, t){
+  const fatPct = t.f*9 / Math.max(1, t.k);
+  if (goal === 'cut_lean' || goal === 'cut_health') return Math.max(0, fatPct - .33) * 1.2;
+  if (goal === 'maintain') return Math.max(0, fatPct - .38) * .8;
+  return 0;
+}
+function candidates(kind, tr){
+  if (kind === 's') return SNACKS.map(d => ({...d}));
+  let list = DISHES.filter(d => d.t === tr && d.kinds.includes(kind)).map(d => ({...d}));
+  if (kind === 'b' && list.length < 3){
+    for (let t2 = tr - 1; t2 >= 0 && list.length < 3; t2--){
+      DISHES.filter(d => d.t === t2 && d.kinds.includes('b')).forEach(d => { if (list.length < 4) list.push({...d, lower:true}); });
+    }
+  }
+  return list;
+}
+
+function plan(u, tg){
+  const slots = SLOTS[u.meals];
+  const used = new Set();
+  return slots.map((slot, i) => {
+    const T = tg.kcal * slot.s, Pt = tg.p * slot.s, Ft = tg.f * slot.s;
+    const ranked = candidates(slot.k, tier)
+      .map(d => { const r = fit(d, T, Pt, Ft); r.score = r.err + .03*r.steps.reduce((a,s)=>a+s.n,0) + goalPenalty(u.goal, r.tot) + (d.lower ? .05 : 0); return r; })
+      .sort((a, b) => a.score - b.score);
+    const key = `${tier}|${u.meals}|${i}`;
+    let chosen = ranked.find(r => r.dish.id === picks[key]);
+    if (!chosen) chosen = ranked.find(r => !used.has(r.dish.id)) || ranked[0];
+    used.add(chosen.dish.id);
+    const alts = ranked.filter(r => r !== chosen).slice(0, 3);
+    return {slot, i, T, Pt, chosen, alts};
+  });
+}
+
+/* ---------- 렌더 ---------- */
+function photoTag(id, name, cls){
+  const src = PHOTOS[id];
+  if (src) return `<img class="${cls||''}" src="${src}" alt="${esc(name)}" loading="lazy">`;
+  return cls ? `<span class="${cls}">${esc(name.slice(0,1))}</span>` : `<span class="ph" aria-hidden="true">${esc(name.slice(0,1))}</span>`;
+}
+function fitPill(k, T){
+  const d = (k - T)/T;
+  if (Math.abs(d) <= .08) return '<span class="pill good">목표에 맞음</span>';
+  if (Math.abs(d) <= .15) return `<span class="pill near">목표 ${d>0?'+':''}${Math.round(d*100)}%</span>`;
+  return `<span class="pill off">목표 ${d>0?'+':''}${Math.round(d*100)}%</span>`;
+}
+function macroBox(t){
+  return `<div class="mac">
+    <div><small>열량</small><b>${fmt(t.k)}<em>kcal</em></b></div>
+    <div><small><i style="background:var(--carb)"></i>탄수화물</small><b>${fmt(t.c)}<em>g</em></b></div>
+    <div><small><i style="background:var(--protein)"></i>단백질</small><b>${fmt(t.p)}<em>g</em></b></div>
+    <div><small><i style="background:var(--fat)"></i>지방</small><b>${fmt(t.f)}<em>g</em></b></div>
+  </div>`;
+}
+function mealCard(m){
+  const r = m.chosen, d = r.dish, t = r.tot;
+  const photoId = d.photo || d.id;
+  const credit = CREDITS.find(c => c.id === photoId);
+  const steps = r.steps.length ? `<ul class="adj">
+      <li><span class="sym base">=</span>기본 1인분 <small>${fmt(d.k)} kcal · 단 ${fmt(d.p)}g</small></li>
+      ${r.steps.map(s => {
+        const minus = s.o.k < 0;
+        const th = s.o.photo && PHOTOS[s.o.photo] ? `<img class="th" src="${PHOTOS[s.o.photo]}" alt="">` : `<span class="sym ${minus?'minus':'plus'}">${minus?'−':'+'}</span>`;
+        return `<li>${th}${esc(s.o.l)}${s.n>1?` ×${s.n}`:''} <small>${minus?'':'+'}${fmt(s.o.k*s.n)} kcal${s.o.p*s.n>=3?` · 단 +${fmt(s.o.p*s.n)}g`:''}</small></li>`;
+      }).join('')}
+    </ul>` : '';
+  return `<article class="meal">
+    <header class="meal-head">
+      <div class="slot"><b>${m.slot.n}</b><span>${m.slot.t} · 목표 <span class="num">${fmt(m.T)}</span> kcal · 단백질 <span class="num">${fmt(m.Pt)}</span>g</span></div>
+      ${fitPill(t.k, m.T)}
+    </header>
+    <div class="meal-body">
+      <figure class="photo"><div class="img">${photoTag(photoId, d.name)}</div>${credit ? `<figcaption>사진 예시 · ${esc(credit.author || 'Wikimedia Commons')}</figcaption>` : ''}</figure>
+      <div class="info">
+        <h3>${esc(d.name)}</h3>
+        <p class="comp">${esc(d.desc)}</p>
+        <div class="meta"><span class="tag price">약 ${won(t.price)}</span><span class="tag">${esc(d.where)}</span>${d.lower?'<span class="tag low">아래 가격대 메뉴</span>':''}${m.slot.k==='s'?'<span class="tag">간식은 가격대 무관</span>':''}</div>
+        ${steps}
+        ${macroBox(t)}
+        <p class="tip"><b>팁</b> ${esc(d.tip)}</p>
+      </div>
+    </div>
+    ${m.alts.length ? `<footer class="alts"><span>다른 선택지</span>${m.alts.map(a => `<button type="button" class="alt" data-slot="${m.i}" data-id="${a.dish.id}" aria-label="${esc(m.slot.n)} 메뉴를 ${esc(a.dish.name)}(으)로 바꾸기">${photoTag(a.dish.photo||a.dish.id, a.dish.name, 'th')}<span><b>${esc(a.dish.name)}</b><small>${fmt(a.tot.k)} kcal · ${won(a.tot.price)}</small></span></button>`).join('')}</footer>` : ''}
+  </article>`;
+}
+function factsRow(name, color, got, goal, unit){
+  const pct = goal ? got/goal : 0;
+  const w = Math.min(100, pct/1.3*100);
+  return `<div class="frow"><span class="nm"><i style="background:${color}"></i>${name}</span><span class="g">${fmt(got)}${unit} <small>/ ${fmt(goal)}${unit}</small></span><span class="pct">${Math.round(pct*100)}%</span>
+    <div class="bar" aria-hidden="true"><span style="width:${w}%;background:${color}"></span><em style="left:${100/1.3}%"></em></div></div>`;
+}
+function stack(c, p, f){
+  const tot = c*4 + p*4 + f*9 || 1;
+  const cs = c*4/tot*100, ps = p*4/tot*100, fs = f*9/tot*100;
+  return `<div class="stack"><span style="width:${cs}%;background:var(--carb)">${Math.round(cs)}</span><span style="width:${ps}%;background:var(--protein)">${Math.round(ps)}</span><span style="width:${fs}%;background:var(--fat)">${Math.round(fs)}</span></div>`;
+}
+
+function render(){
+  const u = readForm();
+  const tg = targets(u);
+  // 보조 표시
+  $('#bmi').textContent = tg.bmi.toFixed(1);
+  $('#bmi-tag').textContent = tg.bmi < 18.5 ? '저체중' : tg.bmi < 23 ? '정상' : tg.bmi < 25 ? '비만 전 단계' : '비만';
+  $('#str-hint').textContent = STR[u.str].h;
+  $('#cardio-hint').textContent = CARDIO[u.cardio].h;
+  $('#str-row').setAttribute('aria-disabled', u.str === 'none');
+  $('#cardio-row').setAttribute('aria-disabled', u.cardio === 'none');
+  $('#str-min-out').textContent = u.strMin + '분';
+  $('#cardio-min-out').textContent = u.cardioMin + '분';
+  $('#meals-hint').textContent = MEAL_HINT[u.meals];
+
+  const meals = plan(u, tg);
+  const sum = meals.reduce((a, m) => ({k:a.k+m.chosen.tot.k, p:a.p+m.chosen.tot.p, c:a.c+m.chosen.tot.c, f:a.f+m.chosen.tot.f, price:a.price+m.chosen.tot.price}), {k:0,p:0,c:0,f:0,price:0});
+
+  $('#facts').innerHTML = `
+    <div class="facts-top"><h2>영양정보</h2><div class="serv">하루 ${u.meals}끼 기준<br>${GOALS[u.goal].l} · 한 끼 ${TIER_LABEL[tier]}</div></div>
+    <div class="facts-kcal"><span>총 열량</span><b>${fmt(sum.k)}<small>kcal</small></b></div>
+    <div class="facts-sub"><span>목표 ${fmt(tg.kcal)} kcal</span><span>${sum.k>=tg.kcal?'+':''}${fmt(sum.k - tg.kcal)} kcal</span></div>
+    ${factsRow('탄수화물', 'var(--carb)', sum.c, tg.c, 'g')}
+    ${factsRow('단백질', 'var(--protein)', sum.p, tg.p, 'g')}
+    ${factsRow('지방', 'var(--fat)', sum.f, tg.f, 'g')}
+    <div class="ratio">
+      <div class="ratio-row"><span>목표</span>${stack(tg.c, tg.p, tg.f)}</div>
+      <div class="ratio-row"><span>식단</span>${stack(sum.c, sum.p, sum.f)}</div>
+    </div>
+    <div class="facts-foot">막대 안 숫자는 열량 기준 탄:단:지 비율(%)입니다. 세로선은 목표치. 하루 식비 약 <b class="num">${won(sum.price)}</b> · 물 약 <b class="num">${tg.water.toFixed(1)}L</b></div>`;
+
+  const g = GOALS[u.goal];
+  const notes = [];
+  if (tg.floored) notes.push(`<div class="alert">계산상 목표가 기초대사량(${fmt(tg.bmr)} kcal)보다 낮아, 기초대사량 수준으로 올려 잡았습니다. 더 줄이기보다 활동량을 늘리는 쪽을 권합니다.</div>`);
+  if (tg.bmi > 25) notes.push(`<div class="alert" style="background:var(--accent-soft);color:var(--accent)">BMI가 25를 넘어 단백질은 BMI 25 기준 체중(${tg.refW.toFixed(1)}kg)으로 계산했습니다.</div>`);
+  if (tg.c < 120) notes.push(`<div class="alert">탄수화물이 하루 120g 아래입니다. 운동 강도가 높다면 지방을 줄이고 탄수화물을 늘려보세요.</div>`);
+  $('#calc').innerHTML = `<h3>하루 목표는 이렇게 나왔어요</h3>
+    <ol>
+      <li><span>기초대사량</span><span class="num">${fmt(tg.bmr)} kcal</span></li>
+      <li><span>일상 활동 (${JOB[u.job].l} ×${JOB[u.job].f})</span><span class="num">+${fmt(tg.neat - tg.bmr)} kcal</span></li>
+      <li><span>근력운동 (하루 평균)</span><span class="num">+${fmt(tg.strK)} kcal</span></li>
+      <li><span>유산소 (하루 평균)</span><span class="num">+${fmt(tg.carK)} kcal</span></li>
+      <li><span>유지 칼로리</span><span class="num">${fmt(tg.tdee)} kcal</span></li>
+      <li><span>${g.l} (${g.adj>0?'+':''}${Math.round(g.adj*100)}%)</span><span class="num">${fmt(tg.kcal)} kcal</span></li>
+    </ol>
+    <ol style="margin-top:10px">
+      <li><span>단백질 (${tg.pCapped ? '열량의 35% 상한' : `${g.p}g × ${tg.refW.toFixed(0)}kg`})</span><span class="num">${fmt(tg.p)} g</span></li>
+      <li><span>지방 (열량의 ${Math.round(tg.f*9/tg.kcal*100)}%)</span><span class="num">${fmt(tg.f)} g</span></li>
+      <li><span>탄수화물 (나머지)</span><span class="num">${fmt(tg.c)} g</span></li>
+      <li><span>예상 체중 변화</span><span class="num">${Math.abs(tg.weekly) < .05 ? '유지' : `주당 ${tg.weekly>0?'+':'−'}${Math.abs(tg.weekly).toFixed(2)} kg`}</span></li>
+    </ol>
+    ${notes.join('')}
+    <ul class="notes">${GOAL_NOTES[u.goal].map(n => `<li>${n}</li>`).join('')}</ul>`;
+
+  $('#meals').innerHTML = `
+    <div class="meals-head"><h2>오늘의 식단</h2><p>메뉴를 누르면 그 끼니만 바뀝니다. 부족한 칼로리·단백질은 곁들임으로 맞췄어요.</p></div>
+    ${meals.map(mealCard).join('')}
+    <div class="day-sum"><span>하루 합계</span><b>${fmt(sum.k)} kcal</b><span>탄 ${fmt(sum.c)}g · 단 ${fmt(sum.p)}g · 지 ${fmt(sum.f)}g</span><span>식비 약 ${won(sum.price)}</span></div>`;
+
+  save(u);
+}
+
+/* ---------- 이벤트 ---------- */
+$('#form').addEventListener('input', render);
+$('#form').addEventListener('change', render);
+$('#form').addEventListener('submit', e => e.preventDefault());
+$('#meals').addEventListener('click', e => {
+  const b = e.target.closest('.alt'); if (!b) return;
+  const u = readForm();
+  picks[`${tier}|${u.meals}|${b.dataset.slot}`] = b.dataset.id;
+  render();
+});
+const tabs = [...document.querySelectorAll('.tab')];
+function setTier(n, focus){
+  tier = n;
+  tabs.forEach(t => { const on = +t.dataset.tier === n; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; if (on && focus) t.focus(); });
+  $('#panel').setAttribute('aria-labelledby', 'tab-' + n);
+  render();
+}
+tabs.forEach(t => {
+  t.addEventListener('click', () => setTier(+t.dataset.tier));
+  t.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft'){
+      e.preventDefault();
+      setTier((tier + (e.key === 'ArrowRight' ? 1 : 3)) % 4, true);
+    }
+  });
+});
+
+function save(u){ try { localStorage.setItem(STORE_KEY, JSON.stringify({...u, tier})); } catch(e){} }
+function load(){
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch(e){}
+  if (!s) return;
+  const setRadio = (name, v) => { const el = document.querySelector(`input[name="${name}"][value="${v}"]`); if (el) el.checked = true; };
+  ['sex','job','str','cardio','goal','meals'].forEach(k => s[k] != null && setRadio(k, s[k]));
+  [['age','age'],['height','height'],['weight','weight'],['str-min','strMin'],['cardio-min','cardioMin'],['str-days','strDays'],['cardio-days','cardioDays']]
+    .forEach(([id, k]) => { if (s[k] != null) $('#' + id).value = s[k]; });
+  if (s.tier >= 0 && s.tier <= 3){ tier = s.tier; tabs.forEach(t => { const on = +t.dataset.tier === tier; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; }); }
+}
+
+$('#credit-list').innerHTML = CREDITS.length
+  ? CREDITS.map(c => `<li>${esc(c.id)} — <a href="${esc(c.source)}" target="_blank" rel="noopener">${esc(c.title || c.file)}</a>, ${esc(c.author || '작자 미상')}, ${esc(c.license || '')}</li>`).join('')
+  : '<li>사진 없이 표시 중입니다.</li>';
+if (!CREDITS.length) $('#credits').hidden = true;
+
+load();
+render();
+</script>
+
+</body>
+</html>

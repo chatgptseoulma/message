@@ -1,0 +1,468 @@
+<title>출근 전 점검표</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Gothic+A1:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one narrow column like a station platform board. Status summary on top, three checklist groups below, edit tools hidden until asked. */
+:root {
+  --bg: #eef1ee;
+  --surface: #ffffff;
+  --fg: #1b2420;
+  --muted: #5d6b64;
+  --line: #d3dbd6;
+  --accent: #1d5c7a;
+  --accent-ink: #ffffff;
+  --go: #2c7a4b;
+  --go-soft: #dcefe2;
+  --warn: #b5541c;
+  --warn-soft: #f8e6da;
+  --display: "Do Hyeon", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --body: "Gothic A1", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131917; --surface: #1c2421; --fg: #e6ece8; --muted: #93a29a; --line: #2e3a35;
+    --accent: #6fb3d6; --accent-ink: #0d1a20; --go: #6cc493; --go-soft: #1e3628;
+    --warn: #f0a070; --warn-soft: #3a2619; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131917; --surface: #1c2421; --fg: #e6ece8; --muted: #93a29a; --line: #2e3a35;
+  --accent: #6fb3d6; --accent-ink: #0d1a20; --go: #6cc493; --go-soft: #1e3628;
+  --warn: #f0a070; --warn-soft: #3a2619; color-scheme: dark;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+/* status board */
+.board {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.board-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.date { font-weight: 700; font-size: 14px; color: var(--muted); letter-spacing: 0.02em; }
+.clock { font-family: var(--mono); font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
+h1 { font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1.1; margin: 0; text-wrap: balance; }
+.verdict { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.count { font-family: var(--display); font-size: 52px; line-height: 1; font-variant-numeric: tabular-nums; }
+.count small { font-size: 26px; color: var(--muted); }
+.pill {
+  font-weight: 700; font-size: 14px;
+  padding: 6px 12px; border-radius: 999px;
+  background: var(--warn-soft); color: var(--warn);
+}
+.pill.ok { background: var(--go-soft); color: var(--go); }
+.bar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.25s; }
+.board.done .bar i { background: var(--go); }
+.left { font-size: 14px; color: var(--muted); margin: 0; min-height: 1.5em; }
+.left b { color: var(--warn); font-weight: 700; }
+.meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
+.meta b { color: var(--fg); font-variant-numeric: tabular-nums; }
+
+/* groups */
+.group { display: flex; flex-direction: column; gap: 8px; }
+.group-head { display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px; }
+.group-head h2 { font-family: var(--display); font-weight: 400; font-size: 22px; margin: 0; }
+.group-head span { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.list { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.item { display: flex; align-items: center; border-top: 1px solid var(--line); }
+.item:first-child { border-top: 0; }
+.item label {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+.item input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  flex: none;
+  width: 26px; height: 26px; margin: 0;
+  border: 2px solid var(--muted);
+  border-radius: 8px;
+  display: grid; place-items: center;
+  cursor: pointer;
+  background: var(--surface);
+}
+.item input[type="checkbox"]::after {
+  content: ""; width: 7px; height: 13px;
+  border: solid var(--accent-ink); border-width: 0 3px 3px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+  opacity: 0;
+}
+.item input[type="checkbox"]:checked { background: var(--go); border-color: var(--go); }
+.item input[type="checkbox"]:checked::after { opacity: 1; border-color: var(--surface); }
+.item input[type="checkbox"]:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.txt { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.txt strong { font-weight: 500; font-size: 16px; overflow-wrap: anywhere; }
+.item.checked .txt strong { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag { font-size: 12px; font-weight: 700; color: var(--muted); }
+.tag.imp { color: var(--warn); }
+.item.imp:not(.checked) { box-shadow: inset 4px 0 0 var(--warn); }
+.del {
+  flex: none; margin-right: 10px;
+  border: 1px solid var(--line); background: transparent; color: var(--warn);
+  font: inherit; font-size: 13px; font-weight: 700;
+  padding: 6px 10px; border-radius: 8px; cursor: pointer;
+}
+.empty { padding: 14px 16px; color: var(--muted); font-size: 14px; }
+.skipped { font-size: 13px; color: var(--muted); padding: 0 4px; margin: 0; }
+
+/* controls */
+.tools { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn {
+  font: inherit; font-weight: 700; font-size: 14px;
+  padding: 10px 14px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.08); color: var(--accent-ink); }
+.btn:focus-visible, .del:focus-visible, .day:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.editor {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 16px; display: flex; flex-direction: column; gap: 12px;
+}
+.editor h2 { font-family: var(--display); font-weight: 400; font-size: 22px; margin: 0; }
+.editor .row { display: flex; gap: 10px; flex-wrap: wrap; }
+.editor input[type="text"], .editor select {
+  font: inherit; font-size: 15px;
+  padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--fg);
+  min-width: 0;
+}
+.editor input[type="text"] { flex: 1 1 220px; }
+.days { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.days > span { font-size: 13px; color: var(--muted); margin-right: 4px; }
+.day {
+  font: inherit; font-size: 14px; font-weight: 700;
+  width: 38px; height: 38px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--muted); cursor: pointer;
+}
+.day[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.chk { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.chk input { width: 18px; height: 18px; accent-color: var(--warn); }
+.hint { margin: 0; font-size: 13px; color: var(--muted); }
+
+.foot { font-size: 13px; color: var(--muted); margin: 0; padding: 0 4px; }
+
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+@media (max-width: 420px) {
+  h1 { font-size: 28px; }
+  .count { font-size: 44px; }
+}
+</style>
+
+<div class="wrap">
+  <section class="board" id="board" aria-live="polite">
+    <div class="board-top">
+      <span class="date" id="date">-</span>
+      <span class="clock" id="clock">--:--</span>
+    </div>
+    <h1>출근 전 점검표</h1>
+    <div class="verdict">
+      <span class="count" id="count">0<small>/0</small></span>
+      <span class="pill" id="pill">점검 중</span>
+    </div>
+    <div class="bar"><i id="barFill"></i></div>
+    <p class="left" id="left"></p>
+    <div class="meta">
+      <span>연속 완료 <b id="streak">0일</b></span>
+      <span>최근 출발 점검 <b id="lastDone">기록 없음</b></span>
+    </div>
+  </section>
+
+  <div id="groups"></div>
+
+  <div class="tools">
+    <button type="button" class="btn" id="editToggle" aria-expanded="false">항목 편집</button>
+    <button type="button" class="btn" id="resetToday">오늘 체크 지우기</button>
+  </div>
+
+  <form class="editor" id="editor" hidden autocomplete="off">
+    <h2>항목 추가</h2>
+    <div class="row">
+      <input type="text" id="newText" placeholder="예: 보조배터리" maxlength="40" aria-label="항목 이름" required>
+      <select id="newGroup" aria-label="분류"></select>
+    </div>
+    <div class="days" id="newDays">
+      <span>요일</span>
+    </div>
+    <p class="hint">요일을 하나도 고르지 않으면 매일 나옵니다. 월요일에만 챙기는 보고서처럼 요일을 고르면 그날만 나옵니다.</p>
+    <label class="chk" for="newImp"><input type="checkbox" id="newImp"> 중요 항목으로 표시 (빠뜨리면 큰일 나는 것)</label>
+    <div class="row">
+      <button type="submit" class="btn primary">추가하기</button>
+      <button type="button" class="btn" id="restore">기본 항목으로 되돌리기</button>
+    </div>
+    <p class="hint" id="restoreHint"></p>
+  </form>
+
+  <p class="foot">체크는 자정이 지나면 자동으로 비워집니다. 기록은 이 브라우저에만 저장됩니다.</p>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const KEY = "commute-checklist-v1";
+  const DAY = ["일", "월", "화", "수", "목", "금", "토"];
+  const GROUPS = [
+    { id: "bag", name: "챙길 것" },
+    { id: "home", name: "집 단속" },
+    { id: "out", name: "나가기 직전" },
+  ];
+  const DEFAULT_ITEMS = [
+    { id: "a1", group: "bag", text: "휴대폰", days: [], imp: true },
+    { id: "a2", group: "bag", text: "지갑 · 교통카드", days: [], imp: true },
+    { id: "a3", group: "bag", text: "사원증", days: [], imp: true },
+    { id: "a4", group: "bag", text: "집 열쇠", days: [], imp: false },
+    { id: "a5", group: "bag", text: "이어폰 · 충전기", days: [], imp: false },
+    { id: "a6", group: "bag", text: "주간 보고 자료", days: [1], imp: false },
+    { id: "b1", group: "home", text: "가스레인지 불 끄기", days: [], imp: true },
+    { id: "b2", group: "home", text: "고데기 · 다리미 플러그 뽑기", days: [], imp: true },
+    { id: "b3", group: "home", text: "에어컨 · 난방 끄기", days: [], imp: false },
+    { id: "b4", group: "home", text: "창문 닫기", days: [], imp: false },
+    { id: "b5", group: "home", text: "전등 끄기", days: [], imp: false },
+    { id: "b6", group: "home", text: "음식물 쓰레기 내놓기", days: [2, 5], imp: false },
+    { id: "c1", group: "out", text: "날씨 확인 · 우산 챙기기", days: [], imp: false },
+    { id: "c2", group: "out", text: "오늘 일정 확인", days: [], imp: false },
+    { id: "c3", group: "out", text: "현관문 잠김 확인", days: [], imp: true },
+  ];
+
+  const pad = n => String(n).padStart(2, "0");
+  const dayKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const clone = o => JSON.parse(JSON.stringify(o));
+
+  let state = (() => {
+    try {
+      const s = JSON.parse(localStorage.getItem(KEY));
+      if (s && Array.isArray(s.items)) return s;
+    } catch (e) {}
+    return { items: clone(DEFAULT_ITEMS), date: "", done: [], completed: [], lastDoneAt: "" };
+  })();
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+
+  let editing = false;
+
+  function rollDay() {
+    const today = dayKey(new Date());
+    if (state.date !== today) { state.date = today; state.done = []; persist(); return true; }
+    return false;
+  }
+
+  const todaysItems = () => {
+    const wd = new Date().getDay();
+    return state.items.filter(it => !it.days.length || it.days.includes(wd));
+  };
+
+  function streak() {
+    const set = new Set(state.completed);
+    const d = new Date();
+    if (!set.has(dayKey(d))) d.setDate(d.getDate() - 1);
+    let n = 0;
+    while (set.has(dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+
+  function daysLabel(days) {
+    if (!days.length) return "";
+    return [...days].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map(d => DAY[d]).join("·") + "요일만";
+  }
+
+  function render() {
+    const wd = new Date().getDay();
+    const showAll = editing;
+    const today = todaysItems();
+    const doneSet = new Set(state.done);
+    const host = $("groups");
+    host.innerHTML = "";
+
+    GROUPS.forEach(g => {
+      const all = state.items.filter(it => it.group === g.id);
+      const shown = showAll ? all : all.filter(it => !it.days.length || it.days.includes(wd));
+      const skipped = all.length - all.filter(it => !it.days.length || it.days.includes(wd)).length;
+      const sec = document.createElement("section");
+      sec.className = "group";
+      const doneN = shown.filter(it => doneSet.has(it.id) && (!it.days.length || it.days.includes(wd))).length;
+      const activeN = shown.filter(it => !it.days.length || it.days.includes(wd)).length;
+      sec.innerHTML = `<div class="group-head"><h2>${g.name}</h2><span>${doneN}/${activeN}</span></div>`;
+      const ul = document.createElement("ul");
+      ul.className = "list";
+      if (!shown.length) {
+        ul.innerHTML = `<li class="empty">오늘 해당하는 항목이 없습니다.</li>`;
+      }
+      shown.forEach(it => {
+        const active = !it.days.length || it.days.includes(wd);
+        const li = document.createElement("li");
+        const checked = doneSet.has(it.id);
+        li.className = "item" + (checked ? " checked" : "") + (it.imp ? " imp" : "");
+        const cid = "chk-" + it.id;
+        const tags = [];
+        if (it.imp) tags.push(`<span class="tag imp">중요</span>`);
+        if (it.days.length) tags.push(`<span class="tag">${daysLabel(it.days)}${active ? "" : " · 오늘 아님"}</span>`);
+        li.innerHTML = `<label for="${cid}"><input type="checkbox" id="${cid}" ${checked ? "checked" : ""} ${active ? "" : "disabled"}>
+          <span class="txt"><strong></strong>${tags.length ? `<span class="tags">${tags.join("")}</span>` : ""}</span></label>`;
+        li.querySelector("strong").textContent = it.text;
+        li.querySelector("input").addEventListener("change", e => toggle(it.id, e.target.checked));
+        if (editing) {
+          const b = document.createElement("button");
+          b.type = "button"; b.className = "del"; b.textContent = "삭제";
+          b.setAttribute("aria-label", `${it.text} 삭제`);
+          b.addEventListener("click", () => removeItem(it.id));
+          li.appendChild(b);
+        }
+        ul.appendChild(li);
+      });
+      sec.appendChild(ul);
+      if (!showAll && skipped > 0) {
+        const p = document.createElement("p");
+        p.className = "skipped";
+        p.textContent = `오늘은 요일이 맞지 않는 항목 ${skipped}개를 숨겼습니다.`;
+        sec.appendChild(p);
+      }
+      host.appendChild(sec);
+    });
+
+    // summary
+    const total = today.length;
+    const done = today.filter(it => doneSet.has(it.id)).length;
+    const missingImp = today.filter(it => it.imp && !doneSet.has(it.id));
+    const missing = today.filter(it => !doneSet.has(it.id));
+    const allDone = total > 0 && done === total;
+    $("count").innerHTML = `${done}<small>/${total}</small>`;
+    $("barFill").style.width = total ? (done / total * 100) + "%" : "0%";
+    $("board").classList.toggle("done", allDone);
+    const pill = $("pill");
+    pill.classList.toggle("ok", allDone);
+    pill.textContent = allDone ? "출발해도 됩니다" : missingImp.length ? `중요 ${missingImp.length}개 남음` : "점검 중";
+    const left = $("left");
+    if (allDone) {
+      left.textContent = `모두 확인했습니다. ${state.lastDoneAt ? state.lastDoneAt.slice(11) + "에 점검 완료." : ""}`;
+    } else if (missingImp.length) {
+      left.innerHTML = "";
+      left.append("아직 안 한 중요 항목: ");
+      const b = document.createElement("b");
+      b.textContent = missingImp.map(i => i.text).join(", ");
+      left.append(b);
+    } else {
+      left.textContent = `남은 항목: ${missing.map(i => i.text).join(", ")}`;
+    }
+    const s = streak();
+    $("streak").textContent = `${s}일`;
+    $("lastDone").textContent = state.lastDoneAt ? state.lastDoneAt.replace(/^\d{4}-/, "").replace("-", "/") : "기록 없음";
+  }
+
+  function toggle(id, on) {
+    rollDay();
+    const set = new Set(state.done);
+    on ? set.add(id) : set.delete(id);
+    state.done = [...set];
+    const today = todaysItems();
+    const allDone = today.length > 0 && today.every(it => set.has(it.id));
+    const key = state.date;
+    if (allDone) {
+      if (!state.completed.includes(key)) state.completed.push(key);
+      const d = new Date();
+      state.lastDoneAt = `${key} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      state.completed = state.completed.slice(-400);
+    } else {
+      state.completed = state.completed.filter(k => k !== key);
+    }
+    persist();
+    render();
+  }
+
+  function removeItem(id) {
+    state.items = state.items.filter(it => it.id !== id);
+    state.done = state.done.filter(x => x !== id);
+    persist(); render();
+  }
+
+  // editor
+  const groupSel = $("newGroup");
+  GROUPS.forEach(g => { const o = document.createElement("option"); o.value = g.id; o.textContent = g.name; groupSel.appendChild(o); });
+  const dayBox = $("newDays");
+  [1, 2, 3, 4, 5, 6, 0].forEach(d => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "day"; b.textContent = DAY[d]; b.dataset.d = d;
+    b.id = "day-" + d;
+    b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", () => b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true"));
+    dayBox.appendChild(b);
+  });
+
+  $("editor").addEventListener("submit", e => {
+    e.preventDefault();
+    const text = $("newText").value.trim();
+    if (!text) return;
+    const days = [...dayBox.querySelectorAll('.day[aria-pressed="true"]')].map(b => +b.dataset.d);
+    state.items.push({ id: "u" + Date.now().toString(36), group: groupSel.value, text, days, imp: $("newImp").checked });
+    $("newText").value = "";
+    $("newImp").checked = false;
+    dayBox.querySelectorAll(".day").forEach(b => b.setAttribute("aria-pressed", "false"));
+    persist(); render();
+    $("newText").focus();
+  });
+
+  let restoreArmed = false;
+  $("restore").addEventListener("click", () => {
+    if (!restoreArmed) {
+      restoreArmed = true;
+      $("restore").textContent = "한 번 더 누르면 되돌립니다";
+      $("restoreHint").textContent = "직접 추가한 항목은 모두 지워집니다.";
+      setTimeout(() => { restoreArmed = false; $("restore").textContent = "기본 항목으로 되돌리기"; $("restoreHint").textContent = ""; }, 4000);
+      return;
+    }
+    restoreArmed = false;
+    state.items = clone(DEFAULT_ITEMS);
+    state.done = [];
+    $("restore").textContent = "기본 항목으로 되돌리기";
+    $("restoreHint").textContent = "기본 항목으로 되돌렸습니다.";
+    persist(); render();
+  });
+
+  $("editToggle").addEventListener("click", () => {
+    editing = !editing;
+    $("editor").hidden = !editing;
+    $("editToggle").textContent = editing ? "편집 끝내기" : "항목 편집";
+    $("editToggle").setAttribute("aria-expanded", String(editing));
+    render();
+  });
+
+  $("resetToday").addEventListener("click", () => {
+    state.done = [];
+    state.completed = state.completed.filter(k => k !== state.date);
+    persist(); render();
+  });
+
+  function tickClock() {
+    const d = new Date();
+    $("date").textContent = `${d.getMonth() + 1}월 ${d.getDate()}일 ${DAY[d.getDay()]}요일`;
+    $("clock").textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    if (rollDay()) render();
+  }
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") tickClock(); });
+
+  rollDay();
+  tickClock();
+  render();
+  setInterval(tickClock, 15000);
+})();
+</script>

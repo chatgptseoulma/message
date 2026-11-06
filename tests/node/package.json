@@ -1,0 +1,12 @@
+{
+  "name": "2026cc-characterization-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test --experimental-test-module-mocks --test-concurrency=1 \"*.test.js\""
+  },
+  "devDependencies": {
+    "@sinonjs/fake-timers": "^14.0.0",
+    "jsdom": "^26.1.0"
+  }
+}

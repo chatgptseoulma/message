@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>사내 교육 수요 조사</title>
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --text:#1d2129; --muted:#6b7280; --line:#e3e6eb; --accent:#2563eb; --accent-soft:#e8f0fe; --err:#c0262d; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14161a; --card:#1d2026; --text:#e8eaee; --muted:#9aa1ad; --line:#2e323a; --accent:#6c9cff; --accent-soft:#22304d; --err:#ff7a7f; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:"Pretendard","Malgun Gothic",system-ui,sans-serif; line-height:1.5; }
+  main { max-width:680px; margin:0 auto; padding:32px 16px 64px; }
+  h1 { font-size:1.6rem; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 24px; }
+  h2 { font-size:1rem; color:var(--muted); margin:26px 0 10px; letter-spacing:.02em; }
+  fieldset { border:1px solid var(--line); background:var(--card); border-radius:12px; padding:18px 20px; margin:0 0 14px; min-width:0; }
+  legend { font-weight:600; padding:0 6px; }
+  .req { color:var(--err); }
+  .note { color:var(--muted); font-weight:400; font-size:.9rem; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:520px) { .grid { grid-template-columns:1fr; } }
+  .field label { display:block; font-size:.9rem; margin-bottom:4px; }
+  .opts { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+  .opts label { display:flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:8px; padding:7px 12px; cursor:pointer; }
+  .opts label:has(input:checked) { border-color:var(--accent); background:var(--accent-soft); }
+  .opts label:has(input:disabled) { opacity:.45; cursor:default; }
+  .scale label { min-width:44px; justify-content:center; }
+  .scale input { position:absolute; opacity:0; }
+  .hint { display:flex; justify-content:space-between; color:var(--muted); font-size:.85rem; margin-top:4px; }
+  input[type=text], select, textarea { width:100%; font:inherit; color:inherit; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:9px 11px; }
+  .other { margin-top:8px; }
+  textarea { min-height:100px; resize:vertical; }
+  button { font:inherit; font-weight:600; border:0; border-radius:10px; padding:12px 22px; background:var(--accent); color:#fff; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:default; }
+  #msg { display:block; margin-top:10px; color:var(--err); }
+  .done { text-align:center; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:40px 20px; }
+  a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>사내 교육 수요 조사</h1>
+  <p class="sub">내년 교육 계획 수립에 활용됩니다. 3분 정도 걸립니다. <span class="req">*</span> 표시는 필수 항목입니다.<br>
+    같은 사번으로 다시 제출하면 마지막 응답으로 바뀝니다.</p>
+
+  <form id="f" hidden novalidate>
+    <h2>응답자 정보</h2>
+    <fieldset>
+      <div class="grid">
+        <div class="field"><label for="name">이름 <span class="req">*</span></label><input type="text" id="name" name="name" maxlength="30" autocomplete="name"></div>
+        <div class="field"><label for="emp_no">사번 <span class="req">*</span></label><input type="text" id="emp_no" name="emp_no" maxlength="20" placeholder="예: 20231234"></div>
+        <div class="field"><label for="dept">부서 <span class="req">*</span></label><input type="text" id="dept" name="dept" maxlength="50" placeholder="예: 인사팀"></div>
+        <div class="field"><label for="rank">직급 <span class="req">*</span></label><select id="rank" name="rank"><option value="">선택</option></select></div>
+      </div>
+    </fieldset>
+
+    <h2>교육 수요</h2>
+    <fieldset>
+      <legend>1. 받고 싶은 교육 분야 <span class="req">*</span> <span class="note">(최대 <span id="maxa"></span>개)</span></legend>
+      <div class="opts" id="areas"></div>
+      <input type="text" class="other" name="area_other" maxlength="100" placeholder="기타 분야를 적어 주세요" hidden>
+    </fieldset>
+
+    <fieldset>
+      <legend>2. 가장 우선적으로 원하는 교육 주제</legend>
+      <input type="text" name="priority_topic" maxlength="100" placeholder="예: 엑셀 데이터 분석, 생성형 AI 업무 활용">
+    </fieldset>
+
+    <fieldset>
+      <legend>3. 현재 직무 역량 자기평가 <span class="req">*</span></legend>
+      <div class="opts scale" id="skill"></div>
+      <div class="hint"><span>많이 부족함</span><span>매우 충분함</span></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>4. 선호하는 교육 방식 <span class="req">*</span> <span class="note">(복수 선택)</span></legend>
+      <div class="opts" id="methods"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>5. 선호하는 교육 시간대 <span class="req">*</span></legend>
+      <div class="opts" id="time_slot"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>6. 1회 교육 시간으로 적당한 길이 <span class="req">*</span></legend>
+      <div class="opts" id="duration"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>7. 지난 1년간 받은 사내 교육 만족도</legend>
+      <div class="opts scale" id="past_sat"></div>
+      <div class="hint"><span>1 매우 불만족</span><span>5 매우 만족</span></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>8. 교육 참여가 어려운 이유 <span class="note">(복수 선택)</span></legend>
+      <div class="opts" id="barriers"></div>
+      <input type="text" class="other" name="barrier_other" maxlength="100" placeholder="기타 이유를 적어 주세요" hidden>
+    </fieldset>
+
+    <fieldset>
+      <legend>9. 자유 의견</legend>
+      <textarea name="comment" maxlength="1000" placeholder="교육과 관련해 바라는 점을 자유롭게 적어 주세요"></textarea>
+    </fieldset>
+
+    <button type="submit">제출하기</button>
+    <span id="msg" role="alert"></span>
+  </form>
+
+  <div class="done" id="done" hidden>
+    <h2 style="color:inherit;font-size:1.3rem">응답해 주셔서 감사합니다!</h2>
+    <p id="doneMsg"></p>
+    <p><a href="/">다시 응답하기</a></p>
+  </div>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  const f = $("f"), msg = $("msg");
+
+  function opts(id, name, values, type, labels) {
+    values.forEach((v, i) => {
+      const l = document.createElement("label");
+      const inp = document.createElement("input");
+      inp.type = type; inp.name = name; inp.value = v;
+      l.append(inp, document.createTextNode(labels ? labels[i] : v));
+      $(id).append(l);
+    });
+  }
+  function toggleOther(group, input) {
+    const on = [...f.querySelectorAll(`[name=${group}]:checked`)].some(i => i.value === "기타");
+    const el = f.querySelector(`[name=${input}]`);
+    el.hidden = !on;
+    if (!on) el.value = "";
+  }
+
+  fetch("/api/config").then(r => r.json()).then(c => {
+    c.ranks.forEach(v => $("rank").append(new Option(v, v)));
+    $("maxa").textContent = c.max_areas;
+    opts("areas", "areas", c.areas, "checkbox");
+    opts("skill", "skill", [1, 2, 3, 4, 5], "radio");
+    opts("methods", "methods", c.methods, "checkbox");
+    opts("time_slot", "time_slot", c.time_slots, "radio");
+    opts("duration", "duration", c.durations, "radio");
+    opts("past_sat", "past_sat", ["1", "2", "3", "4", "5", "none"], "radio", ["1", "2", "3", "4", "5", "받은 적 없음"]);
+    opts("barriers", "barriers", c.barriers, "checkbox");
+
+    $("areas").addEventListener("change", () => {
+      const boxes = [...f.querySelectorAll("[name=areas]")];
+      const n = boxes.filter(b => b.checked).length;
+      boxes.forEach(b => { if (!b.checked) b.disabled = n >= c.max_areas; });
+      toggleOther("areas", "area_other");
+    });
+    $("barriers").addEventListener("change", () => toggleOther("barriers", "barrier_other"));
+    f.hidden = false;
+  }).catch(() => { msg.textContent = "설문을 불러오지 못했습니다. 새로 고침해 주세요."; f.hidden = false; });
+
+  f.addEventListener("submit", async e => {
+    e.preventDefault();
+    msg.textContent = "";
+    const fd = new FormData(f);
+    const body = {
+      name: fd.get("name"), emp_no: fd.get("emp_no"), dept: fd.get("dept"), rank: fd.get("rank"),
+      areas: fd.getAll("areas"), area_other: fd.get("area_other"), priority_topic: fd.get("priority_topic"),
+      skill: fd.get("skill"), methods: fd.getAll("methods"), time_slot: fd.get("time_slot"),
+      duration: fd.get("duration"), past_sat: fd.get("past_sat"), barriers: fd.getAll("barriers"),
+      barrier_other: fd.get("barrier_other"), comment: fd.get("comment"),
+    };
+    const btn = f.querySelector("button");
+    btn.disabled = true;
+    try {
+      const r = await fetch("/api/responses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "저장에 실패했습니다.");
+      $("doneMsg").textContent = j.updated ? "이전에 제출한 응답을 새 응답으로 바꿨습니다." : "응답이 저장되었습니다.";
+      f.hidden = true;
+      $("done").hidden = false;
+      window.scrollTo(0, 0);
+    } catch (err) {
+      msg.textContent = err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

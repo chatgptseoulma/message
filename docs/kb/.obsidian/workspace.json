@@ -1,0 +1,207 @@
+{
+  "main": {
+    "id": "17e7c1856527ff83",
+    "type": "split",
+    "children": [
+      {
+        "id": "5d5bbbb063027f4e",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "8b144d24cc81e8bc",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "AI영상방_KakaoTalk_20261106_0943/wiki/analyses/초보-시작-가이드.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "초보-시작-가이드"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "6ea4c3a25843222a",
+    "type": "split",
+    "children": [
+      {
+        "id": "3c595e8de355bd03",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "be1396cf8d5ab357",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "파일 탐색기"
+            }
+          },
+          {
+            "id": "3cf6ffd71180fa4b",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "검색"
+            }
+          },
+          {
+            "id": "81d33231631c9bab",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "북마크"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "626ea669b7e452b2",
+    "type": "split",
+    "children": [
+      {
+        "id": "c0df0658999fdb74",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3cee8b4390715267",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "AI영상방_KakaoTalk_20261106_0943/wiki/analyses/초보-시작-가이드.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "백링크"
+            }
+          },
+          {
+            "id": "fe9303ffd124b258",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "AI영상방_KakaoTalk_20261106_0943/wiki/analyses/초보-시작-가이드.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "나가는 링크"
+            }
+          },
+          {
+            "id": "910017607ed36de1",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "태그"
+            }
+          },
+          {
+            "id": "0121429814620efd",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "모든 속성"
+            }
+          },
+          {
+            "id": "050ffaf48518e500",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "AI영상방_KakaoTalk_20261106_0943/wiki/analyses/초보-시작-가이드.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "개요"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:빠른 전환기 열기": false,
+      "graph:그래프 뷰 열기": false,
+      "canvas:새 캔버스 만들기": false,
+      "templates:템플릿 삽입": false,
+      "command-palette:명령어 팔레트 열기": false,
+      "bases:새 베이스 생성하기": false
+    }
+  },
+  "active": "be1396cf8d5ab357",
+  "lastOpenFiles": [
+    "AI영상방_KakaoTalk_20261106_0943/wiki/analyses/자주-나온-질문.md",
+    "AI영상방_KakaoTalk_20261106_0943/wiki/concepts/로컬-영상-생성.md",
+    "AI영상방_KakaoTalk_20261106_0943/wiki/analyses/초보-시작-가이드.md",
+    "AI영상방_KakaoTalk_20261106_0943/wiki/analyses/영상-모델-비교.md",
+    "AI영상방_KakaoTalk_20261106_0943/wiki/analyses/쓸만한-링크.md",
+    "아침인사방_KakaoTalk_20261106_0929/wiki/analyses/세-사람이-있는-대화-찾기.md",
+    "아침인사방_KakaoTalk_20261106_0929/wiki/entities/아침인사방.md",
+    "아침인사방_KakaoTalk_20261106_0929/wiki/아침인사방-개요.md",
+    "CLAUDE.md",
+    "index.md",
+    "아침인사방_KakaoTalk_20261106_0929/wiki/아침인사방-기록.md",
+    "log.md.tmp.7744.a0be557aab3b",
+    "_tools/kakao_stats.py.tmp.7744.8031aacee882",
+    "README.md.tmp.7744.10fb458761a1"
+  ]
+}

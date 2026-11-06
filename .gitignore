@@ -1,0 +1,29 @@
+# ── 사용자 지정 제외 ─────────────────────────
+# 녹음 파일
+*.m4a
+*.mp3
+*.wav
+*.webm
+*.ogg
+*.flac
+*.aac
+*.wma
+# 주간보고서, voice-notes (폴더 전체)
+주간보고/
+voice-notes/
+
+# ── 비밀값 (절대 올리지 않음) ────────────────
+.env
+.env.*
+**/admin_password.txt
+**/supabase/.temp/
+
+# ── 설치물·캐시·로컬 설정 ────────────────────
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+.vercel/
+.claude/settings.local.json
+voice-notes/logs/
+*.log

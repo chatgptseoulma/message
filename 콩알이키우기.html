@@ -1,0 +1,574 @@
+<title>콩알이 키우기</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=VT323&display=swap">
+<style>
+/* Layout: a chunky pocket handheld (rounded-square shell, green LCD) beside a care card. Stacks to one column on phones. */
+:root {
+  --bg: #e4ebee;
+  --fg: #1f2a2e;
+  --muted: #5b6a70;
+  --card: #f7fafb;
+  --line: #c8d3d8;
+  --shell: #ef9b8b;
+  --shell-rim: #c9705f;
+  --shell-ink: #4a1f17;
+  --key: #fff3e8;
+  --key-ink: #4a1f17;
+  --lcd: #b6c59f;
+  --warn: #c0442e;
+  --display: "Jua", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --body: "Gowun Dodum", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --pixel: "VT323", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161b1e; --fg: #e3eaed; --muted: #95a4aa; --card: #1f262a; --line: #33404a;
+    --warn: #ff8a72; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161b1e; --fg: #e3eaed; --muted: #95a4aa; --card: #1f262a; --line: #33404a;
+  --warn: #ff8a72; color-scheme: dark;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.55;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap {
+  max-width: 880px; margin: 0 auto;
+  display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 28px; align-items: start;
+}
+@media (max-width: 760px) { .wrap { grid-template-columns: minmax(0, 1fr); justify-items: center; } .side { width: 100%; max-width: 420px; } }
+
+/* handheld */
+.device {
+  width: 100%; max-width: 420px;
+  background: var(--shell);
+  border-radius: 44px;
+  padding: 22px 22px 26px;
+  box-shadow: inset 0 -8px 0 var(--shell-rim), inset 0 4px 0 rgba(255,255,255,0.35), 0 18px 30px -16px rgba(0,0,0,0.45);
+  display: flex; flex-direction: column; gap: 14px;
+}
+.brand { display: flex; justify-content: space-between; align-items: center; color: var(--shell-ink); padding: 0 6px; }
+.brand b { font-family: var(--display); font-weight: 400; font-size: 22px; letter-spacing: 0.02em; }
+.brand span { font-family: var(--pixel); font-size: 18px; }
+.bezel { background: var(--shell-ink); border-radius: 18px; padding: 12px; }
+canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; border-radius: 6px; background: var(--lcd); }
+.say {
+  min-height: 3.2em;
+  background: var(--key); color: var(--key-ink);
+  border-radius: 14px; padding: 8px 14px;
+  font-size: 15px;
+  display: flex; align-items: center;
+}
+.meters { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; color: var(--shell-ink); padding: 0 6px; }
+[hidden] { display: none !important; }
+.meter { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 700; white-space: nowrap; }
+@media (max-width: 400px) { .meters { grid-template-columns: 1fr; } }
+.seg { display: flex; gap: 3px; }
+.seg i { width: 12px; height: 12px; border-radius: 3px; background: rgba(74,31,23,0.18); }
+.seg i.on { background: var(--shell-ink); }
+.meter.low { color: #fff; }
+.meter.low .seg i.on { background: #fff; }
+
+.keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.key {
+  font-family: var(--display); font-size: 18px;
+  background: var(--key); color: var(--key-ink);
+  border: 0; border-radius: 16px;
+  padding: 12px 6px;
+  box-shadow: 0 4px 0 var(--shell-rim);
+  cursor: pointer;
+}
+.key:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--shell-rim); }
+.key:disabled { opacity: 0.45; cursor: not-allowed; }
+.key:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
+.keys.game { grid-template-columns: 1fr 1fr 1fr; }
+
+/* side card */
+.side { display: flex; flex-direction: column; gap: 16px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: 32px; line-height: 1.1; margin: 0; }
+h2 { font-family: var(--display); font-weight: 400; font-size: 20px; margin: 0; }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.alert { color: var(--warn); font-weight: 700; margin: 0; min-height: 1.5em; }
+.guide { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 14px; }
+.guide b { color: var(--fg); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.btn {
+  font: inherit; font-size: 14px; font-weight: 700;
+  padding: 9px 14px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer;
+}
+.btn.danger { color: var(--warn); }
+select, input[type="text"] {
+  font: inherit; font-size: 15px; padding: 9px 12px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--fg); min-width: 0;
+}
+.namebox { display: flex; gap: 8px; flex-wrap: wrap; }
+.namebox input { flex: 1 1 160px; }
+.small { font-size: 13px; color: var(--muted); margin: 0; }
+@media (max-width: 400px) {
+  .device { border-radius: 34px; padding: 16px 14px 20px; }
+  .key { font-size: 16px; }
+}
+</style>
+
+<div class="wrap">
+  <div class="device">
+    <div class="brand"><b>콩알이</b><span id="clock">00:00</span></div>
+    <div class="bezel"><canvas id="lcd" width="384" height="256" aria-label="콩알이 화면"></canvas></div>
+    <div class="say" id="say" aria-live="polite">콩 하나가 굴러왔어요. 아무 버튼이나 세 번 눌러 깨워 보세요.</div>
+    <div class="meters" id="meters"></div>
+    <div class="keys" id="keys">
+      <button class="key" id="kFeed" type="button">밥</button>
+      <button class="key" id="kSnack" type="button">간식</button>
+      <button class="key" id="kPlay" type="button">놀기</button>
+      <button class="key" id="kClean" type="button">청소</button>
+      <button class="key" id="kMed" type="button">약</button>
+      <button class="key" id="kLight" type="button">불 끄기</button>
+    </div>
+    <div class="keys game" id="gameKeys" hidden>
+      <button class="key" id="gLeft" type="button">◀ 왼쪽</button>
+      <button class="key" id="gQuit" type="button">그만</button>
+      <button class="key" id="gRight" type="button">오른쪽 ▶</button>
+    </div>
+  </div>
+
+  <div class="side">
+    <section class="card">
+      <h1 id="petName">콩알이</h1>
+      <form class="namebox" id="nameForm" hidden autocomplete="off">
+        <input type="text" id="nameInput" maxlength="8" placeholder="이름 짓기 (8자까지)" aria-label="이름">
+        <button class="btn" type="submit">이름 정하기</button>
+      </form>
+      <dl class="facts">
+        <dt>단계</dt><dd id="fStage">-</dd>
+        <dt>나이</dt><dd id="fAge">-</dd>
+        <dt>몸무게</dt><dd id="fWeight">-</dd>
+        <dt>돌봄 실수</dt><dd id="fMiss">-</dd>
+      </dl>
+      <p class="alert" id="alert"></p>
+    </section>
+
+    <section class="card">
+      <h2>키우는 법</h2>
+      <ul class="guide">
+        <li><b>밥</b>은 배부름을, <b>간식</b>은 기분을 채웁니다. 간식만 주면 살이 쪄요.</li>
+        <li><b>놀기</b>는 콩알이가 고개를 돌릴 쪽을 맞히는 게임입니다. 5판 중 3판을 맞히면 기분이 크게 오릅니다.</li>
+        <li>똥은 바로 <b>청소</b>해 주세요. 더러우면 병이 납니다. 아프면 <b>약</b>을 주세요.</li>
+        <li>체력이 떨어지면 <b>불 끄기</b>로 재워 주세요. 다 자면 혼자 일어납니다.</li>
+        <li>어른이 될 때 돌봄 실수가 3번 이하면 꽃이 피고, 많으면 시든 잎이 됩니다.</li>
+        <li>창을 닫아도 시간은 흐릅니다. 다시 열면 그동안의 변화가 반영됩니다.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>설정</h2>
+      <div class="row">
+        <label for="speed">시간 속도</label>
+        <select id="speed">
+          <option value="1">보통 (실제 시간)</option>
+          <option value="10">빠르게 ×10</option>
+          <option value="60">아주 빠르게 ×60</option>
+        </select>
+      </div>
+      <p class="small">빠르게는 이 화면을 보고 있는 동안만 적용됩니다. 창을 닫은 동안은 실제 시간으로 흐릅니다.</p>
+      <div class="row">
+        <button class="btn danger" type="button" id="restart">새 콩으로 다시 시작</button>
+      </div>
+      <p class="small" id="restartHint"></p>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const KEY = "bean-pet-v1";
+
+  // ---------- sprites (16x16 and small icons) ----------
+  const S = {
+    egg: [
+      "................","................","......####......",".....#....#.....","....#......#....",
+      "...#..#.....#...","...#.....#..#...","..#..........#..","..#...#......#..","..#.......#..#..",
+      "..#..#.......#..","...#........#...","...#...#....#...","....##....##....","......####......","................"],
+    baby: [
+      "................","................","................","................","................",
+      ".....######.....","....#......#....","...#........#...","...#.#....#.#...","...#........#...",
+      "...#..#..#..#...","...#...##...#...","....#......#....",".....######.....","................","................"],
+    child: [
+      ".....##..##.....","....#..##..#....",".....##..##.....",".......##.......",".....######.....",
+      "....#......#....","...#........#...","..#..#....#..#..","..#..........#..","..#...#..#...#..",
+      "..#....##....#..","..#..........#..","...#........#...","....#......#....",".....#....#.....",".....##..##....."],
+    bloom: [
+      "......###.......",".....#.#.#......","......###.......",".......#........","....########....",
+      "...#........#...","..#..........#..",".#..##....##..#.",".#............#.",".#....#..#....#.",
+      ".#.....##.....#.",".#............#.","..#..........#..","...#........#...","....##....##....","....##....##...."],
+    droop: [
+      "................","..........##....","........##..#...",".......#....#...","....########....",
+      "...#........#...","..#..........#..",".#............#.",".#..###..###..#.",".#............#.",
+      ".#.....##.....#.",".#....#..#....#.","..#..........#..","...#........#...","....##....##....","....##....##...."],
+    gone: [
+      "................","................","................","................","................",
+      "................","................","................","........#.......",".......###......",
+      "......#.#.#.....","........#.......","........#.......","........#.......","......#####.....","................"],
+  };
+  const I = {
+    poop:   ["...#....","..##....","..###...",".#####..",".##.###.","########"],
+    heart:  [".##.##..","########","########",".######.","..####..","...##..."],
+    food:   ["...##...","..####..",".######.",".##..##.","########","########"],
+    snack:  ["#..##..#",".######.",".######.","#..##..#"],
+    med:    ["...##...","...##...",".######.",".######.","...##...","...##..."],
+    note:   ["..####","..#..#","..#..#","###.##","###.##"],
+    zz:     ["#####","...#.","..#..",".#...","#####"],
+    bang:   ["##","##","##","##","..","##"],
+    drop:   ["..#..",".###.","#####","#####",".###."],
+    left:   ["...#","..##",".###","####",".###","..##","...#"],
+    right:  ["#...","##..","###.","####","###.","##..","#..."],
+    ok:     [".####.","#....#","#....#","#....#","#....#",".####."],
+    no:     ["#....#",".#..#.","..##..","..##..",".#..#.","#....#"],
+  };
+
+  // ---------- state ----------
+  const fresh = () => ({
+    name: "", stage: "egg", form: "", ageMin: 0,
+    hunger: 80, happy: 80, clean: 100, energy: 100,
+    sick: false, sickMin: 0, zeroMin: 0, poops: 0, poopIn: 45,
+    asleep: false, weight: 5, mistakes: 0, gone: false,
+    lastTick: Date.now(), speed: 1,
+  });
+  let st;
+  try { st = JSON.parse(localStorage.getItem(KEY)) || fresh(); } catch (e) { st = fresh(); }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
+  $("speed").value = String(st.speed || 1);
+
+  const clamp = v => Math.max(0, Math.min(100, v));
+  const nm = () => st.name || "콩알이";
+  let live = false; // true once offline catch-up is done
+  function say(t) { $("say").textContent = t; }
+
+  // ---------- simulation (per simulated minute) ----------
+  function stageFor(min) { return min < 1 ? "egg" : min < 30 ? "baby" : min < 240 ? "child" : "adult"; }
+
+  function step(m) {
+    st.ageMin += m;
+    if (st.gone) return;
+    if (st.stage === "egg") {
+      if (st.ageMin >= 1) { st.stage = "baby"; if (live) { say("콩이 톡 하고 갈라졌어요! 이름을 지어 주세요."); } }
+      return;
+    }
+    const prev = { hunger: st.hunger, happy: st.happy, clean: st.clean };
+    const r = st.asleep
+      ? { hunger: -0.12, happy: -0.04, energy: 1.0, clean: -0.03 }
+      : { hunger: -0.35, happy: -0.3, energy: -0.22, clean: -0.08 };
+    st.hunger = clamp(st.hunger + r.hunger * m);
+    st.happy = clamp(st.happy + (r.happy - (st.sick ? 0.4 : 0) - st.poops * 0.05) * m);
+    st.energy = clamp(st.energy + (r.energy - (st.sick && !st.asleep ? 0.2 : 0)) * m);
+    st.clean = clamp(st.clean + (r.clean - st.poops * 0.25) * m);
+
+    if (!st.asleep) {
+      st.poopIn -= m;
+      if (st.poopIn <= 0) {
+        st.poops = Math.min(4, st.poops + 1);
+        st.poopIn = 35 + Math.random() * 25;
+        if (live) say(`${nm()}가 똥을 쌌어요. 청소해 주세요.`);
+      }
+    }
+    if (!st.sick && (st.clean < 20 || st.hunger < 10) && Math.random() < 0.015 * m) {
+      st.sick = true;
+      if (live) say(`${nm()}가 아파요. 약을 주세요.`);
+    }
+    st.sickMin = st.sick ? st.sickMin + m : 0;
+    st.zeroMin = st.hunger <= 0 ? st.zeroMin + m : 0;
+
+    ["hunger", "happy", "clean"].forEach(k => { if (prev[k] > 0 && st[k] <= 0) st.mistakes++; });
+
+    if (st.asleep && st.energy >= 100) { st.asleep = false; if (live) say(`${nm()}가 푹 자고 일어났어요.`); }
+    if (!st.asleep && st.energy <= 0) { st.asleep = true; st.mistakes++; if (live) say(`${nm()}가 지쳐서 쓰러져 잠들었어요.`); }
+
+    const ns = stageFor(st.ageMin);
+    if (ns !== st.stage) {
+      st.stage = ns;
+      if (ns === "adult") st.form = st.mistakes <= 3 ? "bloom" : "droop";
+      if (live) say(ns === "child" ? `${nm()}에게 떡잎이 났어요!` : st.form === "bloom" ? `${nm()}가 꽃을 피웠어요! 잘 키우셨네요.` : `${nm()}가 어른이 됐지만 잎이 시들었어요.`);
+    }
+    if (st.zeroMin > 720 || st.sickMin > 720) {
+      st.gone = true;
+      if (live) say(`${nm()}가 더 좋은 화분을 찾아 떠났어요.`);
+    }
+  }
+
+  // offline catch-up
+  (function catchUp() {
+    const away = Math.min((Date.now() - (st.lastTick || Date.now())) / 60000, 2880);
+    const before = { ...st };
+    let left = away;
+    while (left > 0) { const m = Math.min(1, left); step(m); left -= m; }
+    st.lastTick = Date.now();
+    live = true;
+    if (away > 10 && !st.gone && st.stage !== "egg") {
+      const h = Math.floor(away / 60), mm = Math.round(away % 60);
+      const notes = [];
+      if (st.poops > before.poops) notes.push(`똥 ${st.poops - before.poops}개`);
+      if (st.sick && !before.sick) notes.push("병이 남");
+      if (st.hunger < 30) notes.push("배고픔");
+      say(`${h ? h + "시간 " : ""}${mm}분 동안 자리를 비웠어요.${notes.length ? " " + notes.join(", ") + "." : " 잘 지냈어요."}`);
+    } else if (st.gone) {
+      say(`${nm()}가 떠났어요. 새 콩으로 다시 시작할 수 있어요.`);
+    } else if (st.stage !== "egg") {
+      say(`${nm()}가 반겨요.`);
+    }
+    save();
+  })();
+
+  // ---------- actions ----------
+  let effect = null, effectUntil = 0;
+  const flash = (icon, ms = 1600) => { effect = icon; effectUntil = Date.now() + ms; };
+  const busy = () => {
+    if (st.gone) { say("떠난 뒤에는 돌볼 수 없어요. 새 콩으로 다시 시작해 주세요."); return true; }
+    if (st.stage === "egg") {
+      st.eggTaps = (st.eggTaps || 0) + 1;
+      if (st.eggTaps >= 3) { st.ageMin = Math.max(st.ageMin, 1); step(0); }
+      else say(`톡톡. 콩이 꿈틀거려요. (${st.eggTaps}/3)`);
+      save(); renderUI();
+      return true;
+    }
+    if (st.asleep) { say(`${nm()}가 자고 있어요. 깨우려면 불을 켜세요.`); return true; }
+    return false;
+  };
+  function act(fn) { if (busy()) return; fn(); save(); renderUI(); }
+
+  $("kFeed").onclick = () => act(() => {
+    if (st.hunger > 92) { say("배불러서 고개를 돌려요."); return; }
+    st.hunger = clamp(st.hunger + 30); st.weight += 1; flash(I.food); say("냠냠. 맛있게 먹었어요.");
+  });
+  $("kSnack").onclick = () => act(() => {
+    st.happy = clamp(st.happy + 20); st.hunger = clamp(st.hunger + 5); st.weight += 2; flash(I.snack);
+    say(st.weight > 30 ? "좋아하긴 하는데 너무 통통해졌어요." : "간식이다! 신났어요.");
+  });
+  $("kClean").onclick = () => act(() => {
+    if (!st.poops && st.clean > 90) { say("이미 깨끗해요."); return; }
+    st.poops = 0; st.clean = 100; flash(I.note, 1000); say("반짝반짝 깨끗해졌어요.");
+  });
+  $("kMed").onclick = () => act(() => {
+    if (!st.sick) { st.happy = clamp(st.happy - 10); say("아프지도 않은데 약은 싫대요."); return; }
+    st.sick = false; st.sickMin = 0; flash(I.med); say("약을 먹고 나았어요.");
+  });
+  $("kLight").onclick = () => {
+    if (st.gone || st.stage === "egg") { busy(); return; }
+    if (st.asleep) {
+      st.asleep = false;
+      if (st.energy < 50) { st.happy = clamp(st.happy - 10); say("덜 잤는데 깨워서 투덜거려요."); }
+      else say("불을 켰어요. 일어났어요.");
+    } else {
+      st.asleep = true; say(`불을 껐어요. ${nm()}가 잠들었어요.`);
+    }
+    save(); renderUI();
+  };
+
+  // mini game
+  let game = null;
+  $("kPlay").onclick = () => act(() => {
+    if (st.energy < 15) { say("너무 피곤해서 못 놀겠대요."); return; }
+    if (st.sick) { say("아파서 놀 기운이 없어요."); return; }
+    st.energy = clamp(st.energy - 8);
+    game = { round: 1, wins: 0, show: null };
+    $("keys").hidden = true; $("gameKeys").hidden = false;
+    say(`${nm()}는 어느 쪽을 볼까요? (1/5)`);
+    $("gLeft").focus();
+  });
+  function guess(dir) {
+    if (!game || game.show) return;
+    const pet = Math.random() < 0.5 ? "left" : "right";
+    const hit = pet === dir;
+    if (hit) game.wins++;
+    game.show = { pet, hit, until: Date.now() + 800 };
+    say(hit ? `맞혔어요! (${game.wins}승)` : `${pet === "left" ? "왼쪽" : "오른쪽"}을 봤어요. 아쉬워요.`);
+    setTimeout(() => {
+      if (!game) return;
+      game.show = null;
+      if (game.round >= 5) return endGame();
+      game.round++;
+      say(`어느 쪽을 볼까요? (${game.round}/5)`);
+    }, 850);
+  }
+  function endGame(quit) {
+    if (!game) return;
+    if (!quit) {
+      if (game.wins >= 3) { st.happy = clamp(st.happy + 25); st.weight = Math.max(3, st.weight - 1); flash(I.heart); say(`5판 중 ${game.wins}판! ${nm()} 기분 최고예요.`); }
+      else { st.happy = clamp(st.happy + 8); say(`5판 중 ${game.wins}판. 그래도 재밌었대요.`); }
+    } else say("게임을 그만뒀어요.");
+    game = null;
+    $("keys").hidden = false; $("gameKeys").hidden = true;
+    save(); renderUI();
+  }
+  $("gLeft").onclick = () => guess("left");
+  $("gRight").onclick = () => guess("right");
+  $("gQuit").onclick = () => endGame(true);
+  document.addEventListener("keydown", e => {
+    if (!game) return;
+    if (e.key === "ArrowLeft") guess("left");
+    if (e.key === "ArrowRight") guess("right");
+  });
+
+  // naming
+  $("nameForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const v = $("nameInput").value.trim();
+    if (!v) return;
+    st.name = v; save(); renderUI();
+    say(`반가워요, ${v}!`);
+  });
+
+  // restart (two-step)
+  let restartArmed = false;
+  $("restart").onclick = () => {
+    if (!restartArmed) {
+      restartArmed = true;
+      $("restart").textContent = "한 번 더 누르면 처음부터";
+      $("restartHint").textContent = "지금 키우는 콩알이는 사라집니다.";
+      setTimeout(() => { restartArmed = false; $("restart").textContent = "새 콩으로 다시 시작"; $("restartHint").textContent = ""; }, 4000);
+      return;
+    }
+    restartArmed = false;
+    const sp = st.speed;
+    st = fresh(); st.speed = sp; game = null;
+    $("keys").hidden = false; $("gameKeys").hidden = true;
+    $("restart").textContent = "새 콩으로 다시 시작"; $("restartHint").textContent = "";
+    save(); renderUI();
+    say("새 콩 하나가 굴러왔어요. 아무 버튼이나 세 번 눌러 깨워 보세요.");
+  };
+
+  $("speed").onchange = () => { st.speed = +$("speed").value; save(); };
+
+  // ---------- drawing ----------
+  const cv = $("lcd"), ctx = cv.getContext("2d");
+  const W = 48, H = 32, C = 8;
+  let pal;
+  function setPal(dark) {
+    pal = dark ? { bg: "#38412e", off: "#3e4833", ink: "#a8ba90" } : { bg: "#b6c59f", off: "#aebd97", ink: "#26301f" };
+  }
+  let grid;
+  function clear() { grid = Array.from({ length: H }, () => new Array(W).fill(0)); }
+  function blit(rows, ox, oy, flip) {
+    rows.forEach((row, y) => {
+      for (let x = 0; x < row.length; x++) {
+        if (row[x] !== "#") continue;
+        const gx = ox + (flip ? row.length - 1 - x : x), gy = oy + y;
+        if (gx >= 0 && gx < W && gy >= 0 && gy < H) grid[gy][gx] = 1;
+      }
+    });
+  }
+  function paint() {
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, cv.width, cv.height);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      ctx.fillStyle = grid[y][x] ? pal.ink : pal.off;
+      ctx.fillRect(x * C + 1, y * C + 1, C - 1, C - 1);
+    }
+  }
+
+  let frame = 0, petX = 14, dir = 1;
+  function draw() {
+    frame++;
+    clear();
+    setPal(st.asleep);
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const bob = reduce ? 0 : frame % 2;
+
+    if (st.gone) {
+      blit(S.gone, 16, 8);
+    } else if (st.stage === "egg") {
+      blit(S.egg, 16 + (reduce ? 0 : (frame % 4 === 1 ? 1 : frame % 4 === 3 ? -1 : 0)), 10);
+    } else {
+      const spr = st.stage === "adult" ? S[st.form || "bloom"] : S[st.stage];
+      const maxX = st.poops ? 13 : 30;
+      if (!st.asleep && !game && !reduce && Math.random() < 0.35) {
+        if (Math.random() < 0.15) dir = -dir;
+        petX += dir;
+        if (petX < 2) { petX = 2; dir = 1; }
+        if (petX > maxX) { petX = maxX; dir = -1; }
+      }
+      if (game) petX = 16;
+      petX = Math.min(petX, maxX);
+      blit(spr, petX, 14 + (st.asleep ? 0 : bob), dir < 0);
+      if (st.asleep) blit(I.zz, petX + 15, frame % 4 < 2 ? 6 : 4);
+      if (st.sick && !st.asleep) blit(I.drop, petX + 15, 10);
+      // poops in a 2x2 pile at the bottom right
+      for (let i = 0; i < st.poops; i++) blit(I.poop, 39 - (i % 2) * 9, i < 2 ? 25 : 18);
+      if (game) {
+        blit(I.left, 2, 18); blit(I.right, 42, 18);
+        if (game.show) {
+          blit(game.show.pet === "left" ? I.left : I.right, game.show.pet === "left" ? 10 : 34, 4);
+          blit(game.show.hit ? I.ok : I.no, 21, 4);
+        }
+      } else if (effect && Date.now() < effectUntil) {
+        blit(effect, petX + 4, 4);
+      }
+      const call = !st.asleep && (st.hunger < 25 || st.happy < 25 || st.clean < 30 || st.energy < 15 || st.sick || st.poops >= 2);
+      if (call && frame % 2 === 0) blit(I.bang, 1, 1);
+    }
+    paint();
+  }
+
+  // ---------- UI ----------
+  const STAGE = { egg: "콩 (알)", baby: "아기 콩", child: "떡잎 콩", adult: "" };
+  function fmtAge(min) {
+    if (min < 60) return `${Math.floor(min)}분`;
+    if (min < 1440) return `${Math.floor(min / 60)}시간 ${Math.floor(min % 60)}분`;
+    return `${Math.floor(min / 1440)}일 ${Math.floor((min % 1440) / 60)}시간`;
+  }
+  function renderUI() {
+    $("petName").textContent = st.stage === "egg" ? "아직 이름 없는 콩" : nm();
+    $("nameForm").hidden = !(st.stage !== "egg" && !st.name && !st.gone);
+    $("fStage").textContent = st.gone ? "떠남" : st.stage === "adult" ? (st.form === "bloom" ? "꽃 핀 콩" : "시든 잎 콩") : STAGE[st.stage];
+    $("fAge").textContent = fmtAge(st.ageMin);
+    $("fWeight").textContent = `${st.weight}g`;
+    $("fMiss").textContent = `${st.mistakes}번`;
+
+    const meters = [["배부름", st.hunger], ["기분", st.happy], ["청결", st.clean], ["체력", st.energy]];
+    $("meters").innerHTML = meters.map(([n, v]) => {
+      const on = Math.ceil(v / 20);
+      return `<div class="meter ${v < 25 && st.stage !== "egg" && !st.gone ? "low" : ""}"><span>${n}</span><span class="seg">${[0,1,2,3,4].map(i => `<i class="${i < on ? "on" : ""}"></i>`).join("")}</span></div>`;
+    }).join("");
+
+    const needs = [];
+    if (!st.gone && st.stage !== "egg") {
+      if (st.sick) needs.push("아파요, 약이 필요해요");
+      if (st.poops) needs.push(`똥 ${st.poops}개`);
+      if (st.hunger < 25) needs.push("배고파요");
+      if (st.happy < 25) needs.push("심심해요");
+      if (st.energy < 15 && !st.asleep) needs.push("졸려요");
+    }
+    $("alert").textContent = needs.join(" · ");
+
+    $("kLight").textContent = st.asleep ? "불 켜기" : "불 끄기";
+    const d = new Date();
+    $("clock").textContent = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  }
+
+  // ---------- loops ----------
+  setInterval(() => {
+    const now = Date.now();
+    const realMin = (now - st.lastTick) / 60000;
+    st.lastTick = now;
+    const visible = document.visibilityState === "visible";
+    step(realMin * (visible ? (st.speed || 1) : 1));
+    save();
+    renderUI();
+  }, 1000);
+  setInterval(draw, 500);
+  renderUI();
+  draw();
+})();
+</script>

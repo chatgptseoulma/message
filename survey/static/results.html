@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>교육 수요 조사 결과</title>
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --text:#1d2129; --muted:#6b7280; --line:#e3e6eb; --accent:#2563eb; --track:#eef0f3; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14161a; --card:#1d2026; --text:#e8eaee; --muted:#9aa1ad; --line:#2e323a; --accent:#6c9cff; --track:#2a2e36; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:"Pretendard","Malgun Gothic",system-ui,sans-serif; line-height:1.5; }
+  main { max-width:960px; margin:0 auto; padding:32px 16px 64px; }
+  header { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  h1 { font-size:1.6rem; margin:0; }
+  a { color:var(--accent); }
+  .filters { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:16px; }
+  select { font:inherit; color:inherit; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:7px 10px; }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:14px; }
+  .tile, section { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; min-width:0; }
+  .tile .k { color:var(--muted); font-size:.9rem; }
+  .tile .v { font-size:1.8rem; font-weight:700; font-variant-numeric:tabular-nums; }
+  .tile .s { color:var(--muted); font-size:.85rem; }
+  .cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px; margin-bottom:14px; }
+  h2 { font-size:1.05rem; margin:0 0 12px; }
+  .row { display:grid; grid-template-columns:minmax(90px,140px) 1fr 70px; align-items:center; gap:10px; margin:6px 0; }
+  .row span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bar { height:14px; background:var(--track); border-radius:7px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:var(--accent); border-radius:7px; }
+  .n { text-align:right; font-variant-numeric:tabular-nums; color:var(--muted); font-size:.9rem; }
+  .c { border-top:1px solid var(--line); padding:10px 0; }
+  .c:first-of-type { border-top:0; }
+  .c b { font-weight:600; }
+  .meta { color:var(--muted); font-size:.85rem; }
+  .empty { color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>교육 수요 조사 결과</h1>
+    <span><a href="/">설문 페이지</a> · <a href="/api/export.csv">CSV 내려받기 (전체)</a> · <a href="/logout">로그아웃</a></span>
+  </header>
+  <div class="filters">
+    <label>부서 <select id="dept"><option value="">전체</option></select></label>
+    <label>직급 <select id="rank"><option value="">전체</option></select></label>
+    <span class="meta">30초마다 자동 새로 고침</span>
+  </div>
+  <div class="tiles">
+    <div class="tile"><div class="k">응답 수</div><div class="v" id="count">-</div></div>
+    <div class="tile"><div class="k">역량 자기평가 평균 (5점)</div><div class="v" id="skill">-</div></div>
+    <div class="tile"><div class="k">지난 1년 교육 만족도 (5점)</div><div class="v" id="sat">-</div><div class="s" id="none"></div></div>
+  </div>
+  <div class="cols">
+    <section><h2>받고 싶은 교육 분야</h2><div id="areas"></div></section>
+    <section><h2>선호 교육 방식</h2><div id="methods"></div></section>
+    <section><h2>선호 시간대</h2><div id="time_slots"></div></section>
+    <section><h2>1회 적정 교육 시간</h2><div id="durations"></div></section>
+    <section><h2>교육 참여가 어려운 이유</h2><div id="barriers"></div></section>
+    <section><h2>직급별 응답 수</h2><div id="ranks"></div></section>
+  </div>
+  <section><h2>주관식 응답</h2><div id="texts"></div></section>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+  function bars(id, obj, total) {
+    const box = $(id); box.replaceChildren();
+    const max = Math.max(1, ...Object.values(obj));
+    for (const [k, v] of Object.entries(obj)) {
+      const row = el("div", "row");
+      const lab = el("span", null, k); lab.title = k;
+      const bar = el("div", "bar"); const fill = el("i"); fill.style.width = (v / max * 100) + "%"; bar.append(fill);
+      const pct = total ? ` (${Math.round(v / total * 100)}%)` : "";
+      row.append(lab, bar, el("span", "n", v + pct));
+      box.append(row);
+    }
+  }
+
+  async function load() {
+    const q = new URLSearchParams({ dept: $("dept").value, rank: $("rank").value });
+    const r = await fetch("/api/summary?" + q);
+    if (r.status === 401) return location.href = "/login";
+    const d = await r.json();
+
+    const keep = $("dept").value;
+    $("dept").replaceChildren(new Option("전체", ""), ...d.depts.map(x => new Option(x, x)));
+    $("dept").value = d.depts.includes(keep) ? keep : "";
+
+    $("count").textContent = d.count;
+    $("skill").textContent = d.avg_skill ?? "-";
+    $("sat").textContent = d.avg_past_sat ?? "-";
+    $("none").textContent = d.past_none ? `교육 받은 적 없음 ${d.past_none}명` : "";
+    for (const k of ["areas", "methods", "time_slots", "durations", "barriers", "ranks"]) bars(k, d[k], d.count);
+
+    const box = $("texts"); box.replaceChildren();
+    if (!d.texts.length) box.append(el("p", "empty", "아직 주관식 응답이 없습니다."));
+    const lines = [["priority_topic", "우선 주제"], ["area_other", "기타 분야"], ["barrier_other", "기타 어려운 점"], ["comment", "의견"]];
+    for (const t of d.texts) {
+      const c = el("div", "c");
+      for (const [k, label] of lines) {
+        if (!t[k]) continue;
+        const p = el("div"); p.append(el("b", null, label + ": "), document.createTextNode(t[k])); c.append(p);
+      }
+      c.append(el("div", "meta", `${t.name} (${t.emp_no}) · ${t.dept} · ${t.rank} · ${t.updated_at}`));
+      box.append(c);
+    }
+  }
+
+  fetch("/api/config").then(r => r.json()).then(c => c.ranks.forEach(v => $("rank").append(new Option(v, v))));
+  $("dept").addEventListener("change", load);
+  $("rank").addEventListener("change", load);
+  load(); setInterval(load, 30000);
+</script>
+</body>
+</html>

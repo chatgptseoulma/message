@@ -1,0 +1,1044 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>퇴근길 빡침 우체통</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Gowun+Dodum&display=swap">
+<style>
+:root {
+  --bg: #e9f0ee; --surface: #f7faf9; --fg: #263532; --muted: #64766f; --line: #cfdcd8;
+  --accent: #3f7f76; --accent-ink: #ffffff; --soft: #d5e7e2; --peach: #f2b591; --paper: #fffdf8;
+  --mine: #3f7f76; --mine-ink: #ffffff; --theirs: #ffffff; --seeker: #fdeee4;
+  --warn-bg: #fbe9e0; --warn-fg: #7a3b1d; --err: #b3403a;
+  --hand: "Gaegu", "Malgun Gothic", "Apple SD Gothic Neo", cursive;
+  --body: "Gowun Dodum", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141c1b; --surface: #1c2725; --fg: #e2ece9; --muted: #93a8a1; --line: #2d3c39;
+    --accent: #7cc2b6; --accent-ink: #0f1e1b; --soft: #233733; --peach: #e9a57f; --paper: #222e2c;
+    --mine: #2f6a62; --mine-ink: #f1fbf8; --theirs: #26332f; --seeker: #3a2d25;
+    --warn-bg: #3a2a22; --warn-fg: #f2c9b2; --err: #ff8a83; color-scheme: dark;
+  }
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15.5px; line-height: 1.5; }
+button { font: inherit; color: inherit; }
+a { color: var(--accent); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* ── 전체 틀: 왼쪽 메뉴 + 오른쪽 화면 ── */
+.app { display: grid; grid-template-columns: 300px 1fr; height: 100dvh; }
+aside.side { display: flex; flex-direction: column; min-height: 0; background: var(--surface); border-right: 1px solid var(--line); }
+main.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; }
+  body[data-pane="side"] main.main { display: none; }
+  body[data-pane="main"] aside.side { display: none; }
+}
+@media (min-width: 761px) { .only-mobile { display: none !important; } }
+/* 좁은 화면: ☰ 를 누르면 왼쪽 메뉴가 화면 위로 서랍처럼 열림 */
+.drawer-back { display: none; }
+@media (max-width: 760px) {
+  body.drawer aside.side { display: flex !important; position: fixed; top: 0; left: 0; bottom: 0; width: min(320px, 86vw); z-index: 40; box-shadow: 8px 0 30px rgba(0,0,0,.25); overflow-y: auto; }
+  body.drawer aside.side .lists { flex: none; overflow: visible; }
+  body.drawer .drawer-back { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 39; }
+}
+.burger { font-size: 22px; line-height: 1; padding: 2px 8px; background: none; border: 0; cursor: pointer; color: var(--accent); }
+
+/* 왼쪽 메뉴 */
+.brand { padding: 16px 16px 8px; font-family: var(--hand); font-weight: 700; font-size: 26px; line-height: 1.1; }
+.who { display: flex; align-items: center; gap: 10px; margin: 0 12px 10px; padding: 8px 10px; border-radius: 14px; background: var(--bg); }
+.who b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.who small { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
+.who a { font-size: 13px; white-space: nowrap; }
+.avatar { flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--soft); color: var(--accent); font-family: var(--hand); font-weight: 700; font-size: 20px; line-height: 1; }
+.avatar.peach { background: var(--seeker); color: var(--warn-fg); }
+.avatar.emoji { font-family: inherit; font-size: 21px; }
+.newbtn { margin: 0 12px 10px; padding: 11px; border-radius: 12px; border: 0; background: var(--accent); color: var(--accent-ink); font-weight: 600; cursor: pointer; text-decoration: none; text-align: center; display: block; }
+.lists { flex: 1; overflow-y: auto; padding: 0 8px 8px; min-height: 0; }
+.sec { display: flex; justify-content: space-between; align-items: center; margin: 12px 8px 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
+details.hiddenbox summary { cursor: pointer; list-style: none; }
+details.hiddenbox summary::-webkit-details-marker { display: none; }
+details.hiddenbox summary .sec::after { content: "▸"; font-size: 11px; }
+details.hiddenbox[open] summary .sec::after { content: "▾"; }
+.badge { background: var(--peach); color: #3b2414; border-radius: 999px; font-size: 11px; padding: 0 7px; line-height: 18px; min-width: 18px; text-align: center; font-weight: 600; }
+.room { display: grid; grid-template-columns: 38px 1fr auto; gap: 10px; align-items: center; padding: 8px; border-radius: 12px; text-decoration: none; color: inherit; }
+.room:hover { background: var(--soft); }
+.room[aria-current="true"] { background: var(--soft); box-shadow: inset 3px 0 0 var(--accent); }
+.room .mid { min-width: 0; display: flex; flex-direction: column; }
+.room .t1 { font-weight: 600; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.room .t2 { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.room .side2 { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.room.closed .t1, .room.dim .t1 { color: var(--muted); font-weight: 400; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--peach); }
+.empty { color: var(--muted); font-size: 13.5px; padding: 6px 10px; margin: 0; }
+.menu { border-top: 1px solid var(--line); padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+.menu a, .menu button { display: block; width: 100%; text-align: left; text-decoration: none; color: var(--fg); padding: 8px 10px; border-radius: 10px; font-size: 14.5px; background: none; border: 0; cursor: pointer; }
+.menu a:hover, .menu a[aria-current="true"], .menu button:hover { background: var(--soft); }
+.hotline { font-size: 11.5px; color: var(--muted); padding: 6px 14px 12px; margin: 0; }
+/* 창이 낮으면 방 목록만 끼어 안 보이게 되므로, 왼쪽 메뉴 전체가 한꺼번에 스크롤되게 한다 */
+@media (max-height: 560px) {
+  aside.side { overflow-y: auto; }
+  aside.side .lists { flex: none; overflow: visible; min-height: 0; }
+}
+.hotline a { color: inherit; }
+
+/* 오른쪽 화면 공통 */
+.view { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.head { flex: none; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--surface); min-height: 62px; position: relative; }
+/* 창이 아주 낮아도 제목 줄·입력칸은 줄어들지 않고, 대화 영역만 줄어든다 */
+.composer, .closed-note { flex: none; }
+.log { min-height: 80px; }
+.head .back { text-decoration: none; font-size: 26px; line-height: 1; padding: 0 6px; }
+.head .ttl { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.head .ttl b { font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.head .ttl small { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status { display: inline-flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+.chip { font-size: 11.5px; border-radius: 999px; padding: 1px 8px; background: var(--soft); color: var(--fg); white-space: nowrap; }
+.chip.warn { background: var(--warn-bg); color: var(--warn-fg); }
+.chip.off { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+.pad { padding: 22px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; max-width: 720px; width: 100%; }
+h2 { font-family: var(--hand); font-weight: 700; font-size: 28px; margin: 0; line-height: 1.2; }
+h3 { font-size: 15px; margin: 8px 0 0; }
+.hint { margin: 0; color: var(--muted); font-size: 14px; }
+.btn { font-size: 15px; padding: 10px 18px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.danger { color: var(--err); }
+.btn.small { padding: 6px 12px; font-size: 13.5px; }
+.btn.icon { padding: 4px 10px; font-size: 20px; line-height: 1; border-radius: 10px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.msg { min-height: 1.2em; margin: 0; font-size: 14px; color: var(--err); }
+.msg.ok { color: var(--accent); }
+label.field { display: flex; flex-direction: column; gap: 6px; font-size: 15px; }
+input[type=text], textarea { width: 100%; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+textarea.big { min-height: 200px; resize: vertical; background: var(--paper); font-family: var(--hand); font-size: 22px; line-height: 1.45; }
+.reach { background: var(--soft); border-radius: 12px; padding: 10px 14px; font-size: 14.5px; margin: 0; }
+.crisis { background: var(--warn-bg); color: var(--warn-fg); border-radius: 12px; padding: 10px 12px; font-size: 14px; margin: 0; }
+.crisis a { color: inherit; font-weight: 700; }
+.key { font-family: ui-monospace, Consolas, monospace; font-size: 14px; background: var(--surface); border: 1px dashed var(--line); border-radius: 10px; padding: 8px 10px; overflow-wrap: anywhere; user-select: all; }
+.switch { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.emos { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 6px; }
+.emos button { font-size: 22px; line-height: 1; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; padding: 0; }
+.emos button[aria-checked="true"] { border-color: var(--accent); background: var(--soft); box-shadow: 0 0 0 2px var(--accent) inset; }
+.emos button.none { font-size: 12px; color: var(--muted); }
+.blist { display: flex; flex-direction: column; gap: 6px; }
+.blist .item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.blist .item b { flex: 1; }
+
+/* 환영 화면 */
+.welcome { flex: 1; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); }
+.welcome .big { font-size: 54px; }
+.welcome h2 { color: var(--fg); margin: 8px 0; }
+
+/* 대화방 */
+.log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+.day { align-self: center; font-size: 12px; color: var(--muted); background: var(--surface); border-radius: 999px; padding: 2px 10px; margin: 10px 0 6px; }
+.line { display: flex; flex-direction: column; max-width: min(78%, 560px); align-self: flex-start; }
+.line.mine { align-self: flex-end; align-items: flex-end; }
+.line .name { font-size: 12.5px; color: var(--muted); margin: 8px 0 2px 4px; display: flex; gap: 6px; align-items: center; }
+.line .name .em { font-size: 15px; }
+.tag { font-size: 11px; border-radius: 999px; padding: 0 6px; background: var(--seeker); color: var(--warn-fg); }
+.line .row2 { display: flex; align-items: flex-end; gap: 6px; }
+.line.mine .row2 { flex-direction: row-reverse; }
+.bubble { padding: 8px 12px; border-radius: 16px 16px 16px 4px; background: var(--theirs); border: 1px solid var(--line); white-space: pre-wrap; overflow-wrap: anywhere; cursor: pointer; }
+.line.seeker:not(.mine) .bubble { background: var(--seeker); border-color: transparent; }
+.line.mine .bubble { background: var(--mine); color: var(--mine-ink); border-color: var(--mine); border-radius: 16px 16px 4px 16px; }
+.line.gone .bubble { background: transparent !important; color: var(--muted) !important; border: 1px dashed var(--line) !important; font-style: italic; cursor: default; }
+.line .meta { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.line:not(.mine) .meta { align-items: flex-start; }
+.line .t { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.readbtn { font-size: 11px; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; white-space: nowrap; text-decoration: underline dotted; }
+.readbtn.none { color: var(--muted); text-decoration: none; cursor: default; }
+.line.pending .bubble { opacity: .6; }
+.line.failed .bubble { outline: 2px solid var(--err); }
+.line.failed .t { color: var(--err); cursor: pointer; }
+.sys { align-self: center; font-size: 13px; color: var(--muted); text-align: center; margin: 8px 0; }
+.composer { border-top: 1px solid var(--line); background: var(--surface); padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 6px; }
+.composer .bar { display: flex; gap: 8px; align-items: flex-end; }
+.composer textarea { resize: none; min-height: 48px; max-height: 160px; line-height: 1.4; font-size: 16px; }
+.composer .btn { flex: none; height: 48px; }
+.composer .tip { font-size: 12px; color: var(--muted); margin: 0; }
+.emojibtn { flex: none; width: 44px; height: 48px; font-size: 22px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; padding: 0; }
+.emojipad { position: fixed; z-index: 30; width: min(320px, calc(100vw - 24px)); max-height: 240px; overflow-y: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.18); padding: 8px; display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; }
+.emojipad button { font-size: 22px; line-height: 1; height: 36px; border: 0; background: none; border-radius: 8px; cursor: pointer; padding: 0; }
+.emojipad button:hover, .emojipad button:focus-visible { background: var(--soft); }
+/* 공감 반응 */
+.reacts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.line.mine .reacts { justify-content: flex-end; }
+.react { font-size: 12.5px; line-height: 1; padding: 3px 7px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; }
+.react.mine { border-color: var(--accent); background: var(--soft); font-weight: 600; }
+.reactbar { display: flex; gap: 2px; padding: 4px 4px 6px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.reactbar button { font-size: 20px; padding: 6px; border-radius: 10px; }
+.reactbar button.on { background: var(--soft); }
+.closed-note { padding: 14px; text-align: center; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); background: var(--surface); margin: 0; }
+@media (max-width: 760px) {
+  .composer textarea { min-height: 64px; }   /* 안내 문구가 두 줄이어도 잘리지 않게 */
+  .composer .btn { height: 64px; }
+  .line { max-width: 88%; }
+}
+
+/* 팝업 메뉴 / 대화상자 */
+.pop { position: absolute; z-index: 20; min-width: 200px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.18); padding: 6px; display: flex; flex-direction: column; }
+.pop button { text-align: left; background: none; border: 0; padding: 9px 12px; border-radius: 10px; cursor: pointer; font-size: 14.5px; }
+.pop button:hover { background: var(--soft); }
+.pop button.danger { color: var(--err); }
+.pop hr { border: 0; border-top: 1px solid var(--line); margin: 4px 6px; }
+dialog { border: 1px solid var(--line); border-radius: 18px; padding: 0; background: var(--surface); color: var(--fg); width: min(420px, calc(100vw - 32px)); box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+dialog::backdrop { background: rgba(0,0,0,.35); }
+dialog form, dialog .dbody { padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 12px; }
+dialog h3 { margin: 0; font-size: 18px; }
+dialog .opts { display: flex; flex-direction: column; gap: 6px; }
+dialog .opts label { display: flex; gap: 8px; align-items: center; font-size: 15px; }
+dialog ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; }
+dialog li { display: flex; align-items: center; gap: 10px; }
+dialog .acts { display: flex; justify-content: flex-end; gap: 8px; }
+</style>
+</head>
+<body data-pane="side">
+<div class="app">
+  <!-- ── 왼쪽 메뉴 ── -->
+  <aside class="side" aria-label="메뉴">
+    <div class="brand">퇴근길 빡침 우체통</div>
+    <div class="who">
+      <span class="avatar" id="meAvatar">?</span>
+      <b id="meName">…<small id="meRole"></small></b>
+      <a href="/start" title="다른 계정으로 들어가기">계정 바꾸기</a>
+    </div>
+    <a class="newbtn" href="#/new">＋ 새로 쏟아내기</a>
+    <div class="lists">
+      <div class="sec"><span>내 하소연 방</span><span class="badge" id="badgeMine" hidden></span></div>
+      <div id="mineList"><p class="empty">불러오는 중…</p></div>
+      <div class="sec"><span>받은 하소연</span><span class="badge" id="badgeOthers" hidden></span></div>
+      <div id="othersList"></div>
+      <details class="hiddenbox" id="hiddenBox" hidden>
+        <summary><div class="sec"><span id="hiddenTitle">숨긴 방 · 그만둔 방</span></div></summary>
+        <div id="hiddenList"></div>
+      </details>
+    </div>
+    <nav class="menu">
+      <button type="button" id="notifyBtn">🔔 새 메시지 알림 켜기</button>
+      <a href="#/give" data-v="give">🙋 편들어 주기 설정</a>
+      <a href="#/me" data-v="me">⚙ 내 정보 · 차단 목록</a>
+    </nav>
+    <p class="hotline">많이 힘들면 언제든: 자살예방 상담전화 <a href="tel:109">109</a> · 정신건강 위기상담 <a href="tel:15770199">1577-0199</a> (24시간)</p>
+  </aside>
+
+  <!-- ── 오른쪽 화면 ── -->
+  <main class="main">
+    <section class="view" id="v-home">
+      <div class="welcome"><div>
+        <div class="big">🔥</div>
+        <h2>오늘 뭐가 그렇게 열받았어요?</h2>
+        <p>왼쪽 <b>＋ 새로 쏟아내기</b>로 털어놓으면, 편들어 주는 사람 모두한테 보내져요.<br>방은 왼쪽 '내 하소연 방'에 쌓여요.</p>
+      </div></div>
+    </section>
+
+    <!-- 새로 쏟아내기 -->
+    <section class="view" id="v-new" hidden>
+      <div class="head">
+        <button class="burger only-mobile" type="button" aria-label="메뉴 열기">☰</button>
+        <div class="ttl"><b>새로 쏟아내기</b><small>편들어 주는 사람 모두에게 보내져요</small></div>
+      </div>
+      <div class="pad">
+        <p class="reach" id="reach">편들어 줄 사람을 세는 중…</p>
+        <label class="field">오늘 빡친 일
+          <textarea class="big" id="first" maxlength="2000" placeholder="예: 회의에서 내 말만 계속 잘렸다. 어이가 없어서 말도 안 나온다. 진짜 다 때려치우고 싶다."></textarea>
+        </label>
+        <p class="crisis" id="crisisNew" hidden></p>
+        <div class="row">
+          <span class="row" style="gap:8px"><button class="emojibtn" type="button" data-target="first" aria-label="이모지 넣기">🙂</button><span class="hint" id="firstCount">0 / 2000</span></span>
+          <button class="btn primary" id="newBtn" type="button">모두에게 쏟아내기</button>
+        </div>
+        <p class="msg" id="newMsg" role="alert"></p>
+        <p class="hint">쏟아낼 때마다 새 방이 생겨요. 쓰다 만 글은 이 기기에 저장돼서 다시 와도 그대로 있어요.</p>
+      </div>
+    </section>
+
+    <!-- 하소연 방 (메신저) -->
+    <section class="view" id="v-room" hidden>
+      <div class="head">
+        <button class="burger only-mobile" type="button" aria-label="메뉴 열기">☰</button>
+        <span class="avatar peach" id="roomAvatar">?</span>
+        <div class="ttl"><b id="roomTitle"></b><small id="roomSub"></small><span class="status" id="roomStatus"></span></div>
+        <button class="btn icon" id="roomMenuBtn" type="button" aria-label="방 메뉴" aria-haspopup="menu">⋯</button>
+        <div class="pop" id="roomMenu" role="menu" hidden style="right:12px; top:56px"></div>
+      </div>
+      <div class="log" id="log" aria-live="polite"></div>
+      <div class="composer" id="composer">
+        <p class="crisis" id="crisisRoom" hidden></p>
+        <div class="bar">
+          <button class="emojibtn" type="button" data-target="input" aria-label="이모지 넣기">🙂</button>
+          <textarea id="input" rows="1" maxlength="2000" placeholder="메시지 입력"></textarea>
+          <button class="btn primary" id="sendBtn" type="button">보내기</button>
+        </div>
+        <p class="tip">Enter 보내기 · Shift+Enter 줄바꿈 · 말풍선을 누르면 공감·회수·신고·차단</p>
+        <p class="msg" id="roomMsg" role="alert"></p>
+      </div>
+      <p class="closed-note" id="closedNote" hidden></p>
+    </section>
+
+    <!-- 편들어 주기 설정 -->
+    <section class="view" id="v-give" hidden>
+      <div class="head">
+        <button class="burger only-mobile" type="button" aria-label="메뉴 열기">☰</button>
+        <div class="ttl"><b>편들어 주기 설정</b><small>등록하면 모든 하소연이 '받은 하소연'에 와요</small></div>
+      </div>
+      <div class="pad">
+        <h2>편들어 주는 사람 되기</h2>
+        <p class="hint">손 들면 내 계정을 만든 뒤에 올라온 하소연 방이 왼쪽 '받은 하소연'에 떠요. 그만하고 싶은 방은 방 오른쪽 위 ⋯ 메뉴에서 '편들어 주기 그만'을 누르면 돼요.</p>
+        <label class="field">나는 이런 편이다 (한 줄)
+          <input type="text" id="intro" maxlength="100" placeholder="예: 무조건 니 편. 10년 차 직장인, 산전수전 다 겪음.">
+        </label>
+        <label class="switch"><input type="checkbox" id="active" checked> 지금 하소연 받기 (끄면 쏟아내기 인원 수에서 빠져요)</label>
+        <div class="row">
+          <span class="hint" id="giveState"></span>
+          <button class="btn primary" id="giveBtn" type="button">손 들기</button>
+        </div>
+        <p class="msg" id="giveMsg" role="alert"></p>
+        <p class="hint">답할 땐 훈계 금지, 해결책도 금지. "와 그건 진짜 선 넘었네" 한마디면 충분해요.</p>
+      </div>
+    </section>
+
+    <!-- 내 정보 -->
+    <section class="view" id="v-me" hidden>
+      <div class="head">
+        <button class="burger only-mobile" type="button" aria-label="메뉴 열기">☰</button>
+        <div class="ttl"><b>내 정보</b><small>닉네임, 이모티콘, 차단 목록, 열쇠, 계정 정리</small></div>
+      </div>
+      <div class="pad">
+        <form id="nickForm" class="row" style="align-items:flex-end">
+          <label class="field" style="flex:1 1 220px">닉네임
+            <input type="text" id="nickInput" maxlength="20">
+          </label>
+          <button class="btn" type="submit">바꾸기</button>
+        </form>
+        <p class="msg" id="nickMsg" role="alert"></p>
+        <h3>내 이모티콘</h3>
+        <div class="emos" id="emos" role="radiogroup" aria-label="이모티콘"></div>
+        <p class="msg" id="emoMsg" role="alert"></p>
+        <h3>차단한 사람</h3>
+        <p class="hint">차단하면 서로의 하소연 방과 메시지가 보이지 않아요.</p>
+        <div class="blist" id="blockList"><p class="empty">불러오는 중…</p></div>
+        <h3>내 열쇠</h3>
+        <p class="hint">다른 기기에서 이어 쓰려면 시작 화면에서 이 열쇠를 붙여 넣으세요. 남한테 보여 주면 내 대화를 볼 수 있으니 조심해요.</p>
+        <div class="row"><span class="key" id="myKey" style="flex:1 1 240px"></span><button class="btn" id="copyKey" type="button">복사</button></div>
+        <div class="row" style="justify-content:flex-start">
+          <button class="btn" id="forget" type="button">이 기기에서 이 계정 빼기</button>
+          <button class="btn danger" id="wipe" type="button">내 기록 모두 지우기</button>
+        </div>
+        <p class="msg" id="wipeMsg" role="alert"></p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 좁은 화면 서랍 메뉴 뒤 배경 -->
+<div class="drawer-back" id="drawerBack"></div>
+
+<!-- 말풍선 메뉴 -->
+<div class="pop" id="msgMenu" role="menu" hidden></div>
+
+<!-- 이모지 넣기 -->
+<div class="emojipad" id="emojiPad" role="dialog" aria-label="이모지 고르기" hidden></div>
+
+<!-- 신고 -->
+<dialog id="reportDlg">
+  <form method="dialog" id="reportForm">
+    <h3 id="reportTitle">신고하기</h3>
+    <p class="hint" id="reportWho"></p>
+    <div class="opts">
+      <label><input type="radio" name="reason" value="abuse" checked> 욕설·비하</label>
+      <label><input type="radio" name="reason" value="spam"> 도배·광고</label>
+      <label><input type="radio" name="reason" value="privacy"> 개인정보 노출</label>
+      <label><input type="radio" name="reason" value="sexual"> 성적인 내용</label>
+      <label><input type="radio" name="reason" value="other"> 기타</label>
+    </div>
+    <label class="field">자세한 내용 (선택)
+      <textarea id="reportDetail" maxlength="300" rows="3"></textarea>
+    </label>
+    <label class="switch"><input type="checkbox" id="reportBlock" checked> 이 사람 차단도 하기</label>
+    <p class="hint">신고는 관리자가 확인한 뒤 가려요. 당장 안 보고 싶으면 차단을 같이 하세요.</p>
+    <p class="msg" id="reportMsg" role="alert"></p>
+    <div class="acts">
+      <button class="btn" value="cancel" formnovalidate>취소</button>
+      <button class="btn primary" id="reportSend" value="send">신고하기</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 읽은 사람 -->
+<dialog id="readersDlg">
+  <div class="dbody">
+    <h3 id="readersTitle">읽은 사람</h3>
+    <ul id="readersList"></ul>
+    <div class="acts"><button class="btn" type="button" id="readersClose">닫기</button></div>
+  </div>
+</dialog>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+
+  // ── 이 브라우저 저장소: 지금 계정 열쇠, 등록된 계정 목록, 이번 창에서 고른 계정, 쓰다 만 글, 알림 설정 ──
+  const KEY = "comfort-letters-key", LIST = "comfort-letters-accounts", SESSION = "comfort-letters-session";
+  const ls = {
+    get: k => { try { return localStorage.getItem(k); } catch { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+    del: k => { try { localStorage.removeItem(k); } catch {} },
+  };
+  const ss = { get: () => { try { return sessionStorage.getItem(SESSION); } catch { return null; } }, del: () => { try { sessionStorage.removeItem(SESSION); } catch {} } };
+  const store = {
+    list() { try { const a = JSON.parse(ls.get(LIST) || "[]"); return Array.isArray(a) ? a.filter(x => x && x.token) : []; } catch { return []; } },
+    saveList: a => ls.set(LIST, JSON.stringify(a)),
+    remember(tok, info) { const a = store.list(), i = a.findIndex(x => x.token === tok); if (i >= 0) Object.assign(a[i], info); else a.push({ token: tok, ...info }); store.saveList(a); },
+    forget(tok) { store.saveList(store.list().filter(x => x.token !== tok)); },
+    cached: tok => store.list().find(x => x.token === tok)?.me ?? null,
+  };
+
+  // 등록된 계정이 없거나, 이번 창에서 아직 계정을 고르지 않았으면 시작 화면(등록/계정 고르기)으로
+  const token = ls.get(KEY);
+  if (!token || ss.get() !== token || !store.list().some(a => a.token === token)) { location.replace("/start"); return; }
+
+  // 쓰다 만 글 (계정별·방별로 이 기기에 저장)
+  const draftKey = id => `comfort-letters-draft:${token.slice(0, 12)}:${id}`;
+  const drafts = { get: id => ls.get(draftKey(id)) ?? "", set: (id, v) => v ? ls.set(draftKey(id), v) : ls.del(draftKey(id)) };
+
+  let me = store.cached(token);
+  let data = { comforter: false, mine: [], others: [], hidden: [] };
+  let room = null;              // 열려 있는 방
+  let roomTimer = null;
+
+  async function api(path, opts = {}) {
+    const r = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: opts.body ? JSON.stringify(opts.body) : undefined });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401) { store.forget(token); ls.del(KEY); ss.del(); location.replace("/start"); throw new Error("다시 들어와 주세요."); }
+    if (!r.ok) throw new Error(j.error || "문제가 생겼어요. 다시 시도해 주세요.");
+    return j;
+  }
+  const busy = async (btn, fn) => { btn.disabled = true; try { await fn(); } finally { btn.disabled = false; } };
+  const hhmm = iso => new Date(iso).toLocaleTimeString("ko-KR", { hour: "numeric", minute: "2-digit" });
+  const dayOf = iso => new Date(iso).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" });
+  function when(iso) {
+    const d = new Date(iso), diff = (Date.now() - d) / 60000;
+    if (diff < 1) return "방금";
+    if (diff < 60) return Math.floor(diff) + "분 전";
+    if (new Date().toDateString() === d.toDateString()) return hhmm(iso);
+    return d.toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" });
+  }
+  const myIds = () => new Set(store.list().map(a => a.id).filter(Boolean).concat(me?.id ? [me.id] : []));
+  function avatar(emoji, name, cls = "") {
+    const a = el("span", "avatar " + cls + (emoji ? " emoji" : ""), emoji || (name || "?").slice(0, 1));
+    return a;
+  }
+  function setAvatar(node, emoji, name) { node.textContent = emoji || (name || "?").slice(0, 1); node.classList.toggle("emoji", Boolean(emoji)); }
+
+  // 위기 신호가 보이면 상담 전화를 먼저 안내 (전송은 막지 않음)
+  const CRISIS = /죽고\s*싶|자살|극단적|사라지고\s*싶|살기\s*싫|목숨|끝내고\s*싶|자해/;
+  function crisisCheck(text, box) {
+    const on = CRISIS.test(text);
+    box.hidden = !on;
+    if (on && !box.childNodes.length) {
+      box.append("많이 힘드시군요. 지금 바로 이야기를 들어 줄 사람이 있어요. 자살예방 상담전화 ");
+      const a = el("a", null, "109"); a.href = "tel:109"; box.append(a, " (24시간, 무료)로 전화해 주세요.");
+    }
+  }
+
+  // 팝업 메뉴 공통: 바깥을 누르거나 Esc 로 닫힘
+  function openPop(pop, items, anchor, top) {
+    pop.replaceChildren();
+    if (top) pop.append(top);
+    for (const it of items) {
+      if (it === "-") { pop.append(el("hr")); continue; }
+      const b = el("button", it.danger ? "danger" : null, it.label); b.type = "button"; b.setAttribute("role", "menuitem");
+      b.addEventListener("click", () => { pop.hidden = true; it.run(); });
+      pop.append(b);
+    }
+    if (anchor) {
+      const r = anchor.getBoundingClientRect();
+      pop.style.position = "fixed";
+      pop.style.top = Math.min(r.bottom + 4, innerHeight - 20 - items.length * 40) + "px";
+      pop.style.left = Math.max(8, Math.min(r.left, innerWidth - 220)) + "px";
+      pop.style.right = "auto";
+    }
+    pop.hidden = false;
+    pop.querySelector("button")?.focus();
+  }
+  document.addEventListener("click", e => {
+    for (const p of [$("roomMenu"), $("msgMenu")]) if (!p.hidden && !p.contains(e.target) && e.target !== $("roomMenuBtn") && !e.target.closest?.(".bubble")) p.hidden = true;
+    const pad = $("emojiPad");
+    if (!pad.hidden && !pad.contains(e.target) && !e.target.closest?.(".emojibtn")) pad.hidden = true;
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") { $("roomMenu").hidden = true; $("msgMenu").hidden = true; $("emojiPad").hidden = true; document.body.classList.remove("drawer"); }
+  });
+
+  // ── 좁은 화면: ☰ 로 왼쪽 메뉴를 서랍처럼 열고 닫기 ──
+  const closeDrawer = () => document.body.classList.remove("drawer");
+  document.querySelectorAll(".burger").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); document.body.classList.toggle("drawer"); }));
+  $("drawerBack").addEventListener("click", closeDrawer);
+  document.querySelector("aside.side").addEventListener("click", e => { if (e.target.closest("a[href^='#']")) closeDrawer(); });
+
+  // ── 이모지 넣기 (메시지·쏟아내기 입력칸) ──
+  const PAD = ["😀","😂","🤣","😊","🥲","😭","😢","😤","😡","🤬","😮‍💨","😩","😱","🤯","🙄","😑",
+    "🥹","😌","🤗","🫠","🙃","😎","🤔","🫡","👍","👎","👏","🙌","🙏","💪","🫶","🤝",
+    "❤️","💔","🔥","💯","✨","⭐","☕","🍺","🍗","🍜","🍰","🌧️","🌈","🌙","🍀","🎉"];
+  let padTarget = null;
+  (function buildPad() {
+    for (const em of PAD) {
+      const b = el("button", null, em); b.type = "button"; b.setAttribute("aria-label", em);
+      b.addEventListener("click", () => {
+        const ta = $(padTarget); if (!ta) return;
+        const s = ta.selectionStart ?? ta.value.length, en = ta.selectionEnd ?? s;
+        ta.value = ta.value.slice(0, s) + em + ta.value.slice(en);
+        ta.selectionStart = ta.selectionEnd = s + em.length;
+        ta.dispatchEvent(new Event("input"));   // 글자 수·초안 저장·위기 안내 갱신
+        ta.focus();
+      });
+      $("emojiPad").append(b);
+    }
+  })();
+  document.querySelectorAll(".emojibtn").forEach(b => b.addEventListener("click", e => {
+    e.stopPropagation();
+    const pad = $("emojiPad");
+    if (!pad.hidden && padTarget === b.dataset.target) { pad.hidden = true; return; }
+    padTarget = b.dataset.target;
+    const r = b.getBoundingClientRect();
+    pad.hidden = false;
+    const h = pad.offsetHeight, w = pad.offsetWidth;
+    pad.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + "px";
+    pad.style.top = (r.top - h - 6 > 8 ? r.top - h - 6 : Math.min(r.bottom + 6, innerHeight - h - 8)) + "px";
+  }));
+
+  // ── 내 정보 ──
+  function drawMe() {
+    if (!me) return;
+    setAvatar($("meAvatar"), me.emoji, me.nickname);
+    $("meName").firstChild.textContent = me.nickname;
+    $("meRole").textContent = me.comforter?.active ? "편들어 주는 사람" : (me.comforter ? "편들어 주기 쉬는 중" : "");
+  }
+  async function refreshMe() {
+    me = await api("/api/me");
+    store.remember(token, { nickname: me.nickname, id: me.id, emoji: me.emoji, me });
+    drawMe();
+  }
+  // 예전에 저장된 계정은 id가 없을 수 있어 채워 둔다 (내 다른 계정 방을 '받은 하소연'에서 빼려고)
+  async function fillAccountIds() {
+    const missing = store.list().filter(a => !a.id && a.token !== token);
+    await Promise.all(missing.map(async a => {
+      try {
+        const r = await fetch("/api/me", { headers: { Authorization: "Bearer " + a.token } });
+        if (r.status === 401) { store.forget(a.token); return; }
+        const j = await r.json(); store.remember(a.token, { id: j.id, nickname: j.nickname, emoji: j.emoji, me: j });
+      } catch {}
+    }));
+  }
+
+  // ── 새 메시지 알림 (이 탭이 열려 있는 동안. 다른 탭을 보고 있어도 윈도우 알림이 뜸) ──
+  const NOTIFY = "comfort-letters-notify";
+  const notifyOn = () => "Notification" in window && Notification.permission === "granted" && ls.get(NOTIFY) === "1";
+  function drawNotifyBtn() {
+    const b = $("notifyBtn");
+    if (!("Notification" in window)) { b.textContent = "🔕 이 브라우저는 알림을 지원하지 않아요"; b.disabled = true; return; }
+    if (Notification.permission === "denied") { b.textContent = "🔕 알림이 차단됨 (브라우저 설정에서 허용)"; return; }
+    b.textContent = notifyOn() ? "🔔 새 메시지 알림 켜짐 (누르면 끄기)" : "🔕 새 메시지 알림 켜기";
+  }
+  $("notifyBtn").addEventListener("click", async () => {
+    if (!("Notification" in window)) return;
+    if (notifyOn()) { ls.set(NOTIFY, "0"); drawNotifyBtn(); return; }
+    const p = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+    if (p === "granted") { ls.set(NOTIFY, "1"); new Notification("퇴근길 빡침 우체통", { body: "이제 새 메시지가 오면 알려 줄게요.", tag: "cl-test" }); }
+    drawNotifyBtn();
+  });
+  const seenLast = new Map();   // 방 id → 마지막으로 본 last 메시지 (새 메시지 감지용)
+  let firstLoad = true;
+  function notifyNew(rooms) {
+    for (const r of rooms) {
+      const sig = r.updated_at;
+      const prev = seenLast.get(r.id);
+      seenLast.set(r.id, sig);
+      if (firstLoad || !r.unread || prev === sig) continue;
+      if (!document.hidden && room?.id === r.id) continue;
+      if (!notifyOn()) continue;
+      const who = r.last?.author || r.seeker;
+      const n = new Notification(`🔥 ${who}`, { body: `${r.title}\n${r.last?.text ?? ""}`.slice(0, 140), tag: "cl-" + r.id });
+      n.onclick = () => { window.focus(); location.hash = "#/r/" + r.id; n.close(); };
+    }
+    firstLoad = false;
+  }
+
+  // ── 왼쪽 방 목록 ──
+  async function loadRooms() {
+    try { data = await api("/api/rooms"); } catch { return; }
+    data.hidden ??= [];
+    const ids = myIds();
+    data.others = data.others.filter(r => !ids.has(r.seeker_id));   // 내 다른 계정의 하소연은 빼기
+    notifyNew([...data.mine, ...data.others]);
+    drawRooms();
+  }
+  function roomLink(r, kind) {
+    const a = el("a", "room" + (r.closed ? " closed" : "") + (r.stopped || r.hidden ? " dim" : "")); a.href = "#/r/" + r.id;
+    if (room?.id === r.id) a.setAttribute("aria-current", "true");
+    a.append(kind === "others" ? avatar(r.seeker_emoji, r.seeker, "peach") : avatar(me?.emoji, r.title));
+    const mid = el("span", "mid");
+    mid.append(el("span", "t1", kind === "others" ? `${r.seeker} · ${r.title}` : r.title));
+    const lastTxt = r.last ? (r.last.mine ? "나: " : r.last.author ? `${r.last.author}: ` : "") + r.last.text.replace(/\n/g, " ") : "";
+    const flags = [r.closed && "[닫힘]", r.stopped && "[그만둠]", r.hidden && "[숨김]"].filter(Boolean).join(" ");
+    mid.append(el("span", "t2", (flags ? flags + " " : "") + lastTxt));
+    const side = el("span", "side2", when(r.updated_at));
+    if (r.unread && room?.id !== r.id && !r.stopped) side.append(el("span", "dot"));
+    a.append(mid, side);
+    return a;
+  }
+  function drawRooms() {
+    const mine = data.mine, others = data.others;
+    const mb = $("mineList"); mb.replaceChildren();
+    if (!mine.length) mb.append(el("p", "empty", "아직 쏟아낸 방이 없어요."));
+    mine.forEach(r => mb.append(roomLink(r, "mine")));
+    const ob = $("othersList"); ob.replaceChildren();
+    if (!data.comforter) {
+      const p = el("p", "empty", "편들어 주기에 손 들면 다른 사람 하소연이 여기 와요. ");
+      const a = el("a", null, "손 들기"); a.href = "#/give"; p.append(a); ob.append(p);
+    } else if (!others.length) ob.append(el("p", "empty", "아직 온 하소연이 없어요. 조용하네요."));
+    others.forEach(r => ob.append(roomLink(r, "others")));
+    const hb = $("hiddenList"); hb.replaceChildren();
+    $("hiddenBox").hidden = !data.hidden.length;
+    $("hiddenTitle").textContent = `숨긴 방 · 그만둔 방 (${data.hidden.length})`;
+    data.hidden.forEach(r => hb.append(roomLink(r, r.kind)));
+    const nm = mine.filter(r => r.unread && r.id !== room?.id).length, no = others.filter(r => r.unread && r.id !== room?.id).length;
+    $("badgeMine").hidden = !nm; $("badgeMine").textContent = nm;
+    $("badgeOthers").hidden = !no; $("badgeOthers").textContent = no;
+    document.title = (nm + no ? `(${nm + no}) ` : "") + "퇴근길 빡침 우체통";
+  }
+
+  // ── 화면 전환 ──
+  const VIEWS = ["home", "new", "room", "give", "me"];
+  function show(v) {
+    VIEWS.forEach(n => $("v-" + n).hidden = n !== v);
+    document.body.dataset.pane = v === "home" ? "side" : "main";
+    document.querySelectorAll(".menu a").forEach(a => a.toggleAttribute("aria-current", a.dataset.v === v));
+    $("roomMenu").hidden = true; $("msgMenu").hidden = true; $("emojiPad").hidden = true;
+    closeDrawer();
+  }
+  function route() {
+    clearInterval(roomTimer); roomTimer = null;
+    const h = location.hash.replace(/^#\/?/, "");
+    if (h.startsWith("r/")) return openRoom(h.slice(2));
+    room = null; drawRooms();
+    if (h === "new") { show("new"); loadReach(); $("first").value = drafts.get("new"); countFirst(); $("first").focus(); return; }
+    if (h === "give") { show("give"); drawGive(); return; }
+    if (h === "me") { show("me"); drawMePage(); return; }
+    show("home");
+  }
+  window.addEventListener("hashchange", route);
+
+  // ── 새로 쏟아내기 ──
+  async function loadReach() {
+    try {
+      const list = await fetch("/api/comforters", { headers: { Authorization: "Bearer " + token } }).then(r => r.json());
+      const ids = myIds(), n = list.filter(c => !ids.has(c.id)).length;
+      $("reach").textContent = n ? `🔥 지금 ${n}명이 편들어 줄 준비 돼 있어요. 쏟아내면 모두한테 보내져요.` : "아직 편들어 줄 사람이 없어요. 쏟아내 두면 누가 손 들었을 때 볼 수 있어요.";
+    } catch { $("reach").textContent = "쏟아내면 편들어 주는 사람 모두한테 보내져요."; }
+  }
+  function countFirst() { $("firstCount").textContent = `${$("first").value.length} / 2000`; crisisCheck($("first").value, $("crisisNew")); }
+  $("first").addEventListener("input", e => { countFirst(); drafts.set("new", e.target.value); });
+  $("newBtn").addEventListener("click", e => busy(e.currentTarget, async () => {
+    $("newMsg").textContent = "";
+    if (!$("first").value.trim()) { $("newMsg").textContent = "뭐라도 적어요. 한 줄이면 돼요."; $("first").focus(); return; }
+    try {
+      const r = await api("/api/rooms", { method: "POST", body: { body: $("first").value } });
+      $("first").value = ""; drafts.set("new", ""); countFirst();
+      location.hash = "#/r/" + r.id;
+      loadRooms();
+    } catch (err) { $("newMsg").textContent = err.message; }
+  }));
+
+  // ── 하소연 방 ──
+  const GONE = { recalled: "회수된 메시지예요.", moderated: "신고로 가려진 메시지예요." };
+  function addDay(log, iso) { const d = dayOf(iso); if (log.dataset.day !== d) { log.dataset.day = d; log.append(el("span", "day", d)); room.lastAuthor = null; } }
+  function readCount(id) { return (room.readers || []).filter(r => r.last_read_id >= id); }
+  function drawRead(ln, id) {
+    const box = ln.querySelector(".meta"); if (!box) return;
+    box.querySelector(".readbtn")?.remove();
+    if (!id || ln.classList.contains("gone")) return;
+    const rs = readCount(id);
+    const b = el("button", "readbtn" + (rs.length ? "" : " none"), rs.length ? `읽음 ${rs.length}` : "안 읽음"); b.type = "button";
+    if (rs.length) b.addEventListener("click", ev => { ev.stopPropagation(); showReaders(id); });
+    else b.disabled = true;
+    box.prepend(b);
+  }
+  function markGone(ln, why) {
+    ln.classList.add("gone"); ln.dataset.gone = why;
+    ln.querySelector(".bubble").textContent = GONE[why] ?? "지워진 메시지예요.";
+    ln.querySelector(".readbtn")?.remove();
+    ln.querySelector(".reacts")?.replaceChildren();
+  }
+  // 공감 반응: 말풍선 아래 작은 칩(누르면 내 반응 켜기/끄기)
+  const REACTIONS = ["👍", "😢", "🔥", "😡", "🫂", "💪"];
+  function drawReactions(ln, id) {
+    const box = ln.querySelector(".reacts"); if (!box || ln.classList.contains("gone")) return;
+    box.replaceChildren();
+    for (const r of (room.reactions?.[id] || [])) {
+      const b = el("button", "react" + (r.mine ? " mine" : ""), `${r.emoji} ${r.count}`); b.type = "button";
+      b.title = r.mine ? "내 공감 취소" : "나도 공감";
+      b.addEventListener("click", ev => { ev.stopPropagation(); toggleReaction(id, r.emoji); });
+      box.append(b);
+    }
+  }
+  async function toggleReaction(id, emoji) {
+    try {
+      const r = await api("/api/reactions", { method: "POST", body: { message_id: id, emoji } });
+      room.reactions = { ...(room.reactions || {}), [id]: r.reactions };
+      const ln = $("log").querySelector(`.line[data-id="${id}"]`);
+      if (ln) drawReactions(ln, id);
+    } catch (err) { $("roomMsg").textContent = err.message; }
+  }
+  function line(m, extra = "") {
+    const ln = el("div", "line" + (m.mine ? " mine" : "") + (m.by_seeker ? " seeker" : "") + extra);
+    if (m.id) ln.dataset.id = m.id;
+    // 같은 사람이 연달아 보내면 이름은 한 번만
+    if (!m.mine && room.lastAuthor !== m.author) {
+      const nm = el("span", "name");
+      if (m.author_emoji) nm.append(el("span", "em", m.author_emoji));
+      nm.append(m.author);
+      if (m.by_seeker) nm.append(el("span", "tag", "하소연"));
+      ln.append(nm);
+    }
+    const r2 = el("div", "row2");
+    const bubble = el("div", "bubble", m.body);
+    const meta = el("span", "meta");
+    meta.append(el("span", "t", m.at ? hhmm(m.at) : "보내는 중"));
+    r2.append(bubble, meta);
+    ln.append(r2, el("div", "reacts"));
+    if (m.removed) markGone(ln, m.removed);
+    else if (m.id) {
+      // 말풍선을 누르면 메뉴(공감·회수·신고·차단), 아래에는 공감 칩 — 둘 다 해야 함 (D-03)
+      bubble.addEventListener("click", ev => { ev.stopPropagation(); messageMenu(m, ln, bubble); });
+      drawReactions(ln, m.id);
+    }
+    if (m.mine && m.id) drawRead(ln, m.id);
+    return ln;
+  }
+  function appendMessages(msgs) {
+    const log = $("log");
+    const near = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+    for (const m of msgs) {
+      if (m.id <= room.lastId) continue;
+      const pend = [...log.querySelectorAll(".line.pending")].find(x => x.dataset.body === m.body);
+      if (m.mine && pend) pend.remove();
+      addDay(log, m.at);
+      log.append(line(m));
+      room.lastId = m.id; room.lastAuthor = m.mine ? "__me" : m.author;
+    }
+    if (near || msgs.some(m => m.mine)) log.scrollTop = log.scrollHeight;
+  }
+  // 매 확인마다: 읽음 수, 회수·가려진 메시지를 화면에 반영
+  function applyRoomState(t) {
+    room.readers = t.readers || [];
+    room.reactions = t.reactions || {};
+    $("log").querySelectorAll(".line[data-id]").forEach(ln => drawReactions(ln, Number(ln.dataset.id)));
+    for (const r of t.removed || []) {
+      const ln = $("log").querySelector(`.line[data-id="${r.id}"]`);
+      if (ln && !ln.classList.contains("gone")) markGone(ln, r.why);
+    }
+    $("log").querySelectorAll(".line.mine[data-id]").forEach(ln => drawRead(ln, Number(ln.dataset.id)));
+  }
+  function setHead(t) {
+    Object.assign(room, { owner: t.owner, closed: t.closed, stopped: t.stopped, hidden: t.hidden, seekerId: t.seeker_id, seeker: t.seeker, legacy: t.legacy, moderated: t.moderated, participants: t.participants });
+    setAvatar($("roomAvatar"), t.seeker_emoji, t.seeker);
+    $("roomTitle").textContent = t.title || "(제목 없음)";
+    $("roomSub").textContent = t.owner ? (t.legacy ? "예전 1:1 대화" : "내 하소연 방") : `${t.seeker} 님의 하소연 방` + (t.legacy ? " · 예전 1:1 대화" : "");
+    // 방 상태 표시
+    const st = $("roomStatus"); st.replaceChildren();
+    st.append(el("span", "chip" + (t.closed ? " off" : ""), t.closed ? "닫힘" : "진행 중"));
+    if (!t.legacy) st.append(el("span", "chip", `편들어 준 사람 ${t.participants}명`));
+    if (t.stopped) st.append(el("span", "chip off", "내가 편들어 주기 그만둠"));
+    if (t.hidden) st.append(el("span", "chip off", "숨긴 방"));
+    if (t.moderated) st.append(el("span", "chip warn", "신고가 쌓여 다른 사람에게 가려짐"));
+    const canWrite = !t.closed && !t.stopped;
+    $("composer").hidden = !canWrite;
+    $("closedNote").hidden = canWrite;
+    $("closedNote").textContent = t.closed ? "닫힌 방이에요. 대화 이력만 볼 수 있어요."
+      : "편들어 주기를 그만둔 방이에요. 오른쪽 위 ⋯ 에서 '다시 편들기'를 누르면 다시 쓸 수 있어요.";
+    $("input").placeholder = t.owner ? "더 쏟아내기" : "편들어 주기 한마디";
+  }
+  async function openRoom(id) {
+    show("room");
+    const fresh = room?.id !== id;
+    if (fresh) {
+      if (room) drafts.set(room.id, $("input").value);   // 옮기기 전에 쓰던 글 저장
+      room = { id, lastId: 0, lastAuthor: null, readers: [] };
+      $("log").replaceChildren(el("p", "sys", "불러오는 중…")); $("log").dataset.day = "";
+      $("input").value = drafts.get(id); grow(); $("roomMsg").textContent = ""; crisisCheck($("input").value, $("crisisRoom"));
+      $("roomStatus").replaceChildren();
+      const known = [...data.mine, ...data.others, ...data.hidden].find(r => r.id === id);
+      $("roomTitle").textContent = known?.title ?? ""; $("roomSub").textContent = "";
+      if (known) known.unread = false;
+      drawRooms();
+    }
+    try {
+      const t = await api(`/api/room?id=${encodeURIComponent(id)}`);
+      if (room?.id !== id) return;
+      if (fresh) { $("log").replaceChildren(); $("log").dataset.day = ""; }
+      setHead(t);
+      room.readers = t.readers || [];
+      appendMessages(t.messages);
+      applyRoomState(t);
+      $("log").scrollTop = $("log").scrollHeight;
+      if (!t.closed && !t.stopped && matchMedia("(min-width: 761px)").matches) $("input").focus();
+    } catch (err) { $("log").replaceChildren(el("p", "sys", err.message)); $("composer").hidden = true; $("roomStatus").replaceChildren(); return; }
+    clearInterval(roomTimer);
+    roomTimer = setInterval(pollRoom, 3000);   // 방이 열려 있는 동안 3초마다 새 메시지·읽음·회수 확인
+  }
+  async function pollRoom() {
+    if (!room || document.hidden) return;
+    try {
+      const t = await api(`/api/room?id=${encodeURIComponent(room.id)}&after=${room.lastId}`);
+      if (t.id !== room.id) return;
+      if (t.messages.length) appendMessages(t.messages);
+      applyRoomState(t);
+      if (t.closed !== room.closed || t.stopped !== room.stopped || t.participants !== room.participants) setHead(t);
+    } catch (err) {
+      if (/찾을 수 없/.test(err.message)) { $("log").append(el("p", "sys", "이 방을 더 볼 수 없어요.")); clearInterval(roomTimer); }
+    }
+  }
+  async function send(text) {
+    const log = $("log");
+    const tmp = line({ mine: true, body: text }, " pending");
+    tmp.dataset.body = text;
+    log.append(tmp); log.scrollTop = log.scrollHeight;
+    try {
+      const m = await api(`/api/room?id=${encodeURIComponent(room.id)}`, { method: "POST", body: { body: text } });
+      if (tmp.isConnected) { tmp.remove(); appendMessages([m]); }
+      loadRooms();
+    } catch (err) {
+      tmp.classList.remove("pending"); tmp.classList.add("failed");
+      const t = tmp.querySelector(".t"); t.textContent = "실패 · 다시"; t.title = err.message;
+      t.addEventListener("click", () => { tmp.remove(); send(text); }, { once: true });
+      $("roomMsg").textContent = err.message;
+    }
+  }
+  const input = $("input");
+  const grow = () => { input.style.height = "auto"; input.style.height = Math.min(Math.max(input.scrollHeight, 0), 160) + "px"; };
+  input.addEventListener("input", () => {
+    grow(); crisisCheck(input.value, $("crisisRoom"));
+    if (room) drafts.set(room.id, input.value);
+    if (input.value.trim()) $("roomMsg").textContent = "";
+  });
+  input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("sendBtn").click(); } });
+  $("sendBtn").addEventListener("click", () => {
+    const text = input.value.trim(); $("roomMsg").textContent = "";
+    if (!room || room.closed || room.stopped) return;
+    if (!text) { $("roomMsg").textContent = "뭐라도 적어요. 한 줄이면 돼요."; input.focus(); return; }   // 빈 답장 안내
+    input.value = ""; grow(); $("crisisRoom").hidden = true; drafts.set(room.id, "");
+    send(text); input.focus();
+  });
+
+  // 방 메뉴 (오른쪽 위 ⋯)
+  async function roomAction(action, okText) {
+    try {
+      await api(`/api/room?id=${encodeURIComponent(room.id)}`, { method: "PATCH", body: { action } });
+      const t = await api(`/api/room?id=${encodeURIComponent(room.id)}&after=${room.lastId}`);
+      setHead(t); applyRoomState(t); loadRooms();
+      if (okText) { $("log").append(el("p", "sys", okText)); $("log").scrollTop = $("log").scrollHeight; }
+    } catch (err) { $("log").append(el("p", "sys", err.message)); }
+  }
+  $("roomMenuBtn").addEventListener("click", e => {
+    e.stopPropagation();
+    if (!room) return;
+    const items = [];
+    items.push(room.hidden
+      ? { label: "👁 목록에 다시 보이기", run: () => roomAction("unhide", "목록에 다시 보여요.") }
+      : { label: "🙈 이 방 숨기기 (새 메시지 오면 다시 보여요)", run: () => { roomAction("hide", "숨겼어요. 왼쪽 아래 '숨긴 방'에서 다시 볼 수 있어요."); } });
+    if (!room.owner) {
+      items.push(room.stopped
+        ? { label: "🙋 다시 편들기", run: () => roomAction("resume", "다시 편들어 줄 수 있어요.") }
+        : { label: "✋ 이 방 편들어 주기 그만", run: () => { if (confirm("이 방에서 편들어 주기를 그만할까요? 목록에서 빠지고 더 쓸 수 없어요. (나중에 다시 편들 수 있어요)")) roomAction("stop", "이 방 편들어 주기를 그만뒀어요."); } });
+      items.push("-");
+      items.push({ label: "🚩 하소연한 사람 신고", danger: true, run: () => openReport({ who: room.seeker, userId: room.seekerId }) });
+      items.push({ label: "⛔ 하소연한 사람 차단", danger: true, run: () => block(room.seekerId, room.seeker) });
+    } else if (!room.closed) {
+      items.push("-");
+      items.push({ label: "🔒 방 닫기 (이력은 남아요)", danger: true, run: async () => { if (confirm("이 방을 닫을까요? 닫아도 대화 이력은 남아요.")) roomAction("close", "방을 닫았어요."); } });
+    }
+    const pop = $("roomMenu");
+    pop.style.position = "absolute"; pop.style.left = "auto"; pop.style.right = "12px"; pop.style.top = "56px";
+    if (pop.hidden) openPop(pop, items); else pop.hidden = true;
+  });
+
+  // 말풍선 메뉴: 내 것 = 회수, 남의 것 = 신고·차단
+  function messageMenu(m, ln, anchor) {
+    if (ln.classList.contains("gone")) return;
+    const items = [];
+    if (m.mine) {
+      items.push({ label: "↩ 메시지 회수 (모두에게서 지우기)", danger: true, run: () => recall(m, ln) });
+    } else {
+      items.push({ label: `🚩 이 메시지 신고`, danger: true, run: () => openReport({ who: m.author, userId: m.author_id, messageId: m.id }) });
+      items.push({ label: `⛔ ${m.author} 님 차단`, danger: true, run: () => block(m.author_id, m.author) });
+    }
+    items.push({ label: "📋 내용 복사", run: () => navigator.clipboard?.writeText(m.body).catch(() => {}) });
+    // 맨 위에 공감 반응 고르기
+    const bar = el("div", "reactbar"); bar.setAttribute("aria-label", "공감 반응");
+    const mineSet = new Set((room.reactions?.[m.id] || []).filter(r => r.mine).map(r => r.emoji));
+    for (const em of REACTIONS) {
+      const b = el("button", mineSet.has(em) ? "on" : null, em); b.type = "button"; b.setAttribute("aria-label", `공감 ${em}`);
+      b.addEventListener("click", () => { $("msgMenu").hidden = true; toggleReaction(m.id, em); });
+      bar.append(b);
+    }
+    openPop($("msgMenu"), items, anchor, bar);
+  }
+  async function recall(m, ln) {
+    if (!confirm("이 메시지를 회수할까요? 모두의 화면에서 '회수된 메시지'로 바뀌어요.")) return;
+    try { await api(`/api/message?id=${m.id}`, { method: "DELETE" }); markGone(ln, "recalled"); loadRooms(); }
+    catch (err) { $("roomMsg").textContent = err.message; }
+  }
+  async function block(userId, name) {
+    if (!userId) return;
+    if (!confirm(`${name} 님을 차단할까요? 서로의 하소연 방과 메시지가 안 보이게 돼요. (내 정보에서 풀 수 있어요)`)) return;
+    try {
+      await api("/api/blocks", { method: "POST", body: { user_id: userId } });
+      if (room && room.seekerId === userId && !room.owner) { location.hash = "#/"; }
+      else if (room) { const id = room.id; room = null; openRoom(id); }
+      loadRooms();
+    } catch (err) { alert(err.message); }
+  }
+
+  // 신고
+  let reportTarget = null;
+  function openReport(t) {
+    reportTarget = t;
+    $("reportTitle").textContent = t.messageId ? "메시지 신고하기" : "하소연한 사람 신고하기";
+    $("reportWho").textContent = `대상: ${t.who}`;
+    $("reportDetail").value = ""; $("reportBlock").checked = true; $("reportMsg").textContent = "";
+    $("reportForm").querySelector("input[value=abuse]").checked = true;
+    $("reportDlg").showModal();
+  }
+  $("reportForm").addEventListener("submit", async e => {
+    if (e.submitter?.value !== "send") return;   // 취소
+    e.preventDefault();
+    const reason = new FormData($("reportForm")).get("reason");
+    const btn = $("reportSend");
+    await busy(btn, async () => {
+      try {
+        const r = await api("/api/reports", { method: "POST", body: {
+          thread_id: room.id, message_id: reportTarget.messageId ?? null, reason, detail: $("reportDetail").value, block: $("reportBlock").checked,
+        } });
+        $("reportDlg").close();
+        $("log").append(el("p", "sys", "신고했어요. 관리자가 확인할게요." + (r.blocked ? " 차단도 했어요." : "")));
+        if (r.blocked) { if (!room.owner && reportTarget.userId === room.seekerId) location.hash = "#/"; else { const id = room.id; room = null; openRoom(id); } loadRooms(); }
+      } catch (err) { $("reportMsg").textContent = err.message; }
+    });
+  });
+
+  // 읽은 사람 팝업
+  function showReaders(id) {
+    const rs = readCount(id);
+    $("readersTitle").textContent = `읽은 사람 ${rs.length}명`;
+    const ul = $("readersList"); ul.replaceChildren();
+    for (const r of rs) { const li = el("li"); li.append(avatar(r.emoji, r.name), el("span", null, r.name)); ul.append(li); }
+    $("readersDlg").showModal();
+  }
+  $("readersClose").addEventListener("click", () => $("readersDlg").close());
+
+  // ── 편들어 주기 설정 ──
+  function drawGive() {
+    $("giveMsg").textContent = "";
+    $("intro").value = me?.comforter?.intro ?? "";
+    $("active").checked = me?.comforter ? me.comforter.active : true;
+    $("giveBtn").textContent = me?.comforter ? "저장" : "손 들기";
+    $("giveState").textContent = me?.comforter ? (me.comforter.active ? "지금 하소연 받는 중." : "지금은 쉬는 중.") : "";
+  }
+  $("giveBtn").addEventListener("click", e => busy(e.currentTarget, async () => {
+    $("giveMsg").className = "msg"; $("giveMsg").textContent = "";
+    try {
+      const r = await api("/api/comforters", { method: "POST", body: { intro: $("intro").value, active: $("active").checked } });
+      me.comforter = r.comforter; store.remember(token, { me }); drawGive(); drawMe(); loadRooms();
+      $("giveMsg").className = "msg ok"; $("giveMsg").textContent = "완료! 이제 하소연이 '받은 하소연'에 떠요.";
+    } catch (err) { $("giveMsg").textContent = err.message; }
+  }));
+
+  // ── 내 정보 ──
+  const EMOJIS = ["👩","👨","🧑","👧🏻","👦🏽","👵🏼","👴🏾","🧓","👶🏻","👩‍🦰","👨‍🦱","👩🏿‍🦱","👨🏼‍🦳","👩‍🦳","👨🏽‍🦲","👱‍♀️","👱🏾‍♂️","🧔🏻","🧕🏽","👳🏿‍♂️",
+    "👩‍💼","👨🏾‍💼","🧑🏼‍💼","👩🏻‍💻","👨‍💻","🧑🏿‍💻","👩🏽‍🔧","👨‍🍳","👩🏼‍🏫","👨🏻‍⚕️","👩🏾‍🎨","🧑‍🚀","🙋‍♀️","🙋🏽‍♂️","🤷🏻‍♀️","🤷🏿‍♂️","🙆🏼‍♀️","🙅‍♂️","💁🏾‍♀️","🤦‍♂️"];
+  function drawEmojis() {
+    const box = $("emos"); box.replaceChildren();
+    for (const em of ["", ...EMOJIS]) {
+      const b = el("button", em ? null : "none", em || "없음"); b.type = "button";
+      b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(em === (me?.emoji ?? "")));
+      b.setAttribute("aria-label", em ? `이모티콘 ${em}` : "이모티콘 없음");
+      b.addEventListener("click", async () => {
+        $("emoMsg").className = "msg"; $("emoMsg").textContent = "";
+        try {
+          me = await api("/api/me", { method: "PATCH", body: { emoji: em } });
+          store.remember(token, { emoji: me.emoji, me }); drawMe(); drawEmojis(); drawRooms();
+          $("emoMsg").className = "msg ok"; $("emoMsg").textContent = em ? `이모티콘을 ${em}(으)로 바꿨어요.` : "이모티콘을 뺐어요.";
+        } catch (err) { $("emoMsg").textContent = err.message; }
+      });
+      box.append(b);
+    }
+  }
+  async function drawBlocks() {
+    const box = $("blockList");
+    try {
+      const list = await api("/api/blocks");
+      box.replaceChildren();
+      if (!list.length) { box.append(el("p", "empty", "차단한 사람이 없어요.")); return; }
+      for (const u of list) {
+        const it = el("div", "item");
+        const b = el("button", "btn small", "차단 풀기"); b.type = "button";
+        b.addEventListener("click", () => busy(b, async () => {
+          try { await api(`/api/blocks?user_id=${encodeURIComponent(u.id)}`, { method: "DELETE" }); drawBlocks(); loadRooms(); } catch (err) { alert(err.message); }
+        }));
+        it.append(avatar(u.emoji, u.nickname), el("b", null, u.nickname), b);
+        box.append(it);
+      }
+    } catch (err) { box.replaceChildren(el("p", "empty", err.message)); }
+  }
+  function drawMePage() { $("nickInput").value = me?.nickname ?? ""; $("myKey").textContent = token; $("nickMsg").textContent = ""; $("emoMsg").textContent = ""; drawEmojis(); drawBlocks(); }
+  $("nickForm").addEventListener("submit", e => {
+    e.preventDefault();
+    busy(e.target.querySelector("button"), async () => {
+      try {
+        me = await api("/api/me", { method: "PATCH", body: { nickname: $("nickInput").value } });
+        store.remember(token, { nickname: me.nickname, id: me.id, emoji: me.emoji, me }); drawMe();
+        $("nickMsg").className = "msg ok"; $("nickMsg").textContent = "바꿨어요.";
+      } catch (err) { $("nickMsg").className = "msg"; $("nickMsg").textContent = err.message; }
+    });
+  });
+  $("copyKey").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(token); $("copyKey").textContent = "복사됨"; } catch { $("copyKey").textContent = "직접 선택해 복사해 주세요"; }
+    setTimeout(() => $("copyKey").textContent = "복사", 2000);
+  });
+  const leave = () => { store.forget(token); ls.del(KEY); ss.del(); location.replace("/start"); };
+  $("forget").addEventListener("click", () => {
+    if (!confirm("이 계정을 이 기기에서 뺄까요? 열쇠 따로 저장 안 했으면 이 계정 대화는 다시 못 봐요.")) return;
+    leave();
+  });
+  $("wipe").addEventListener("click", e => {
+    if (!confirm("닉네임, 편들어 주기 등록, 내 하소연 방과 내가 쓴 메시지가 전부 날아가요. 되돌릴 수 없어요. 진짜 지울까요?")) return;
+    busy(e.currentTarget, async () => {
+      try { await api("/api/me", { method: "DELETE" }); leave(); }
+      catch (err) { $("wipeMsg").textContent = err.message; }
+    });
+  });
+  window.addEventListener("beforeunload", () => { if (room) drafts.set(room.id, $("input").value); });
+
+  // ── 시작 ──
+  drawMe();
+  drawNotifyBtn();
+  route();
+  refreshMe().catch(() => {});
+  fillAccountIds().then(drawRooms);
+  loadRooms();
+  setInterval(loadRooms, 8000);   // 다른 탭을 보고 있어도 확인해서 알림을 띄움
+})();
+</script>
+</body>
+</html>

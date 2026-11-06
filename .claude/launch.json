@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "survey",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["survey/server.py"],
+      "port": 8000
+    },
+    {
+      "name": "gangnam-metaverse",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8123", "--bind", "127.0.0.1", "--directory", "gangnam-metaverse"],
+      "port": 8123
+    },
+    {
+      "name": "kb-viewer",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["C:/2026CC/kb-viewer/server.py", "--port", "8768"],
+      "port": 8768
+    },
+    {
+      "name": "kb-viewer-dist",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8766", "--bind", "127.0.0.1", "--directory", "C:/2026CC/kb-viewer/dist"],
+      "port": 8766
+    }
+  ]
+}

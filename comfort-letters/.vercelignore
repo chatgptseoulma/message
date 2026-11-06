@@ -1,0 +1,6 @@
+supabase
+테스트결과
+보안점검
+*.ps1
+*.log
+.env*

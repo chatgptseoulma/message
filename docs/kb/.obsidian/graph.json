@@ -1,0 +1,25 @@
+{
+  "collapse-filter": false,
+  "search": "-path:_templates -file:README -file:CLAUDE",
+  "showTags": false,
+  "showAttachments": false,
+  "hideUnresolved": false,
+  "showOrphans": true,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    { "query": "file:index OR file:log", "color": { "a": 1, "rgb": 14701138 } },
+    { "query": "path:AI영상방_KakaoTalk_20261106_0943/wiki/sources", "color": { "a": 1, "rgb": 9807270 } },
+    { "query": "path:AI영상방_KakaoTalk_20261106_0943", "color": { "a": 1, "rgb": 3900150 } },
+    { "query": "path:아침인사방_KakaoTalk_20261106_0929", "color": { "a": 1, "rgb": 16027569 } }
+  ],
+  "collapse-display": false,
+  "showArrow": true,
+  "textFadeMultiplier": 0,
+  "nodeSizeMultiplier": 1,
+  "lineSizeMultiplier": 1,
+  "collapse-forces": true,
+  "centerStrength": 0.5,
+  "repelStrength": 10,
+  "linkStrength": 1,
+  "linkDistance": 250
+}

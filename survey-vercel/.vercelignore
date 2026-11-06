@@ -1,0 +1,5 @@
+supabase
+login.ps1
+*.ps1
+.env*
+*.log

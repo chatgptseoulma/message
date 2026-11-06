@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>관리자 로그인</title>
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --text:#1d2129; --muted:#6b7280; --line:#e3e6eb; --accent:#2563eb; --err:#c0262d; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14161a; --card:#1d2026; --text:#e8eaee; --muted:#9aa1ad; --line:#2e323a; --accent:#6c9cff; --err:#ff7a7f; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:"Pretendard","Malgun Gothic",system-ui,sans-serif; line-height:1.5; }
+  main { max-width:380px; margin:12vh auto 0; padding:0 16px; }
+  form { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:28px 24px; }
+  h1 { font-size:1.3rem; margin:0 0 6px; }
+  p { color:var(--muted); margin:0 0 18px; font-size:.9rem; }
+  input { width:100%; font:inherit; color:inherit; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-bottom:12px; }
+  button { width:100%; font:inherit; font-weight:600; border:0; border-radius:10px; padding:11px; background:var(--accent); color:#fff; cursor:pointer; }
+  #msg { display:block; color:var(--err); margin-top:10px; min-height:1.5em; }
+  a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <form id="f">
+    <h1>관리자 로그인</h1>
+    <p>설문 결과와 CSV는 관리자만 볼 수 있습니다.</p>
+    <input type="password" name="password" placeholder="관리자 비밀번호" autocomplete="current-password" autofocus>
+    <button type="submit">로그인</button>
+    <span id="msg" role="alert"></span>
+  </form>
+  <p style="text-align:center;margin-top:14px"><a href="/">설문 페이지로</a></p>
+</main>
+<script>
+  const f = document.getElementById("f"), msg = document.getElementById("msg");
+  f.addEventListener("submit", async e => {
+    e.preventDefault();
+    msg.textContent = "";
+    const btn = f.querySelector("button"); btn.disabled = true;
+    try {
+      const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: f.password.value }) });
+      if (r.ok) return location.href = "/results";
+      msg.textContent = (await r.json()).error || "로그인에 실패했습니다.";
+    } catch { msg.textContent = "서버에 연결할 수 없습니다."; }
+    finally { btn.disabled = false; }
+  });
+</script>
+</body>
+</html>

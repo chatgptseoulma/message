@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kb-viewer",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["C:/2026CC/kb-viewer/server.py"],
+      "port": 8765
+    },
+    {
+      "name": "kb-viewer-dist",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8766", "--bind", "127.0.0.1", "--directory", "C:/2026CC/kb-viewer/dist"],
+      "port": 8766
+    }
+  ]
+}

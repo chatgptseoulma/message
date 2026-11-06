@@ -1,0 +1,12 @@
+{
+  "name": "comfort-letters",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.0"
+  },
+  "devDependencies": {
+    "supabase": "^3.0.0"
+  }
+}

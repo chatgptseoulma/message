@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>관리자 · 퇴근길 빡침 우체통</title>
+<style>
+:root {
+  --bg: #e9f0ee; --surface: #f7faf9; --fg: #263532; --muted: #64766f; --line: #cfdcd8;
+  --accent: #3f7f76; --accent-ink: #fff; --soft: #d5e7e2; --warn-bg: #fbe9e0; --warn-fg: #7a3b1d; --err: #b3403a;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #141c1b; --surface: #1c2725; --fg: #e2ece9; --muted: #93a8a1; --line: #2d3c39; --accent: #7cc2b6; --accent-ink: #0f1e1b; --soft: #233733; --warn-bg: #3a2a22; --warn-fg: #f2c9b2; --err: #ff8a83; color-scheme: dark; }
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif; font-size: 15px; line-height: 1.5; padding: 24px 16px 48px; }
+main { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+h1 { font-size: 22px; margin: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+input[type=password] { font: inherit; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: inherit; min-width: 240px; }
+button { font: inherit; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: inherit; cursor: pointer; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button.warn { color: var(--err); }
+button:disabled { opacity: .5; }
+.msg { color: var(--err); min-height: 1.2em; margin: 0; }
+.meta { color: var(--muted); font-size: 13px; }
+.chip { font-size: 12px; border-radius: 999px; padding: 1px 8px; background: var(--soft); }
+.chip.warn { background: var(--warn-bg); color: var(--warn-fg); }
+.body { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg); border-radius: 10px; padding: 8px 10px; }
+.empty { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>관리자 · 신고 처리</h1>
+  <p class="meta">신고는 자동으로 가려지지 않아요. 여기서 내용을 보고 직접 가리거나 되돌리세요. 비밀번호는 이 창을 닫으면 잊혀요.</p>
+
+  <form class="card" id="loginForm">
+    <div class="row">
+      <input type="password" id="pw" placeholder="관리자 비밀번호" autocomplete="current-password" aria-label="관리자 비밀번호">
+      <button class="primary" type="submit">들어가기</button>
+    </div>
+    <p class="msg" id="loginMsg" role="alert"></p>
+  </form>
+
+  <section id="panel" hidden>
+    <div class="row" style="margin-bottom:10px">
+      <label><input type="radio" name="status" value="open" checked> 처리 안 한 신고</label>
+      <label><input type="radio" name="status" value="all"> 전체</label>
+      <button type="button" id="reload">새로 고침</button>
+      <button type="button" id="logout">나가기</button>
+    </div>
+    <p class="msg" id="panelMsg" role="alert"></p>
+    <div id="list" style="display:flex; flex-direction:column; gap:10px"></div>
+  </section>
+</main>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  let pw = "";   // 메모리에만 보관
+
+  async function api(method, path, body) {
+    const r = await fetch(path, { method, headers: { "Content-Type": "application/json", "x-admin-password": pw }, body: body ? JSON.stringify(body) : undefined });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401) { pw = ""; $("panel").hidden = true; $("loginForm").hidden = false; }
+    if (!r.ok) throw new Error(j.error || "문제가 생겼어요.");
+    return j;
+  }
+  const status = () => document.querySelector("input[name=status]:checked").value;
+  const fmt = iso => iso ? new Date(iso).toLocaleString("ko-KR") : "";
+
+  async function load() {
+    $("panelMsg").textContent = "";
+    const box = $("list"); box.replaceChildren(el("p", "empty", "불러오는 중…"));
+    try {
+      const { reports } = await api("GET", "/api/admin?status=" + status());
+      box.replaceChildren();
+      if (!reports.length) { box.append(el("p", "empty", "신고가 없어요.")); return; }
+      for (const r of reports) box.append(card(r));
+    } catch (err) { box.replaceChildren(); $("panelMsg").textContent = err.message; }
+  }
+
+  function act(label, cls, body) {
+    const b = el("button", cls, label); b.type = "button";
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      try { await api("POST", "/api/admin", body); await load(); }
+      catch (err) { $("panelMsg").textContent = err.message; b.disabled = false; }
+    });
+    return b;
+  }
+
+  function card(r) {
+    const c = el("article", "card");
+    const head = el("div", "row");
+    head.append(el("b", null, `#${r.id} ${r.reason_label}`), el("span", "meta", `${fmt(r.created_at)} · 신고한 사람 ${r.reporter} → 대상 ${r.target}`));
+    if (r.reviewed_at) head.append(el("span", "chip", `처리함 ${fmt(r.reviewed_at)}`));
+    c.append(head);
+    if (r.detail) c.append(el("div", "meta", `신고 내용: ${r.detail}`));
+
+    const room = el("div", "row");
+    room.append(el("span", null, `방: ${r.room ? r.room.title : "(삭제됨)"}`));
+    if (r.room?.moderated) room.append(el("span", "chip warn", "방 가려짐"));
+    if (r.room?.closed) room.append(el("span", "chip", "닫힘"));
+    c.append(room);
+
+    if (r.message_id) {
+      if (!r.message) c.append(el("div", "meta", "메시지: (삭제됨)"));
+      else {
+        const tags = el("div", "row");
+        tags.append(el("span", "meta", "신고된 메시지"));
+        if (r.message.recalled) tags.append(el("span", "chip", "작성자가 회수함"));
+        if (r.message.moderated) tags.append(el("span", "chip warn", "가려짐"));
+        c.append(tags, el("div", "body", r.message.recalled ? "(회수되어 내용이 없어요)" : r.message.body));
+      }
+    }
+
+    const acts = el("div", "row");
+    if (r.message_id && r.message) acts.append(r.message.moderated
+      ? act("메시지 되돌리기", null, { action: "unhide_message", message_id: r.message_id })
+      : act("메시지 가리기", "warn", { action: "hide_message", message_id: r.message_id }));
+    if (r.room) acts.append(r.room.moderated
+      ? act("방 되돌리기", null, { action: "unhide_room", thread_id: r.thread_id })
+      : act("방 가리기", "warn", { action: "hide_room", thread_id: r.thread_id }));
+    acts.append(r.reviewed_at
+      ? act("다시 처리 대기로", null, { action: "reopen", report_id: r.id })
+      : act("처리 완료", "primary", { action: "resolve", report_id: r.id }));
+    c.append(acts);
+    return c;
+  }
+
+  $("loginForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    $("loginMsg").textContent = "";
+    pw = $("pw").value;
+    try {
+      await api("GET", "/api/admin?status=open");
+      $("pw").value = ""; $("loginForm").hidden = true; $("panel").hidden = false; load();
+    } catch (err) { $("loginMsg").textContent = err.message; }
+  });
+  document.querySelectorAll("input[name=status]").forEach(r => r.addEventListener("change", load));
+  $("reload").addEventListener("click", load);
+  $("logout").addEventListener("click", () => { pw = ""; $("panel").hidden = true; $("loginForm").hidden = false; $("list").replaceChildren(); });
+})();
+</script>
+</body>
+</html>
